@@ -5,7 +5,7 @@ import { openaiRealtimeSession } from '../providers/openai';
 
 const router = Router();
 
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const kind = 'realtime.default';
 

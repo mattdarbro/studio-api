@@ -15,7 +15,7 @@ interface ChatRequestBody {
   kind?: string;
 }
 
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { messages, kind = 'chat.default' } = req.body as ChatRequestBody;
 

@@ -24,8 +24,8 @@ function loadCatalog(): ModelCatalog {
 
   const catalogPath = path.join(__dirname, '..', 'model-catalog.json');
   const catalogData = fs.readFileSync(catalogPath, 'utf-8');
-  catalogCache = JSON.parse(catalogData);
-  return catalogCache;
+  catalogCache = JSON.parse(catalogData) as ModelCatalog;
+  return catalogCache as ModelCatalog;
 }
 
 export function resolveModel(kind: string, channel: string = 'stable'): ModelConfig {

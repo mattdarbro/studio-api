@@ -1,7 +1,7 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { authMiddleware } from './auth';
+import { authMiddleware, AuthenticatedRequest } from './auth';
 import { rateLimitMiddleware } from './rateLimit';
 import { getCatalog } from './models';
 import chatRouter from './routes/chat';
@@ -29,8 +29,8 @@ app.get('/health', (req, res) => {
 });
 
 // Apply authentication and rate limiting to all routes
-app.use(authMiddleware);
-app.use(rateLimitMiddleware);
+app.use(authMiddleware as any);
+app.use(rateLimitMiddleware as any);
 
 // Routes
 app.get('/v1/models', (req, res) => {
