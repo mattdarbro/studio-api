@@ -12,7 +12,9 @@ dotenv.config();
 
 // Validate critical environment variables
 console.log('[STARTUP] Checking environment configuration...');
+console.log('[STARTUP] All env vars:', Object.keys(process.env).filter(k => k.includes('PORT') || k.includes('HOST')));
 console.log('[STARTUP] PORT env var:', process.env.PORT);
+console.log('[STARTUP] Railway PORT:', process.env.RAILWAY_PUBLIC_PORT);
 if (!process.env.APP_KEY && !process.env.APP_JWT_SECRET) {
   console.warn('[STARTUP] Warning: Neither APP_KEY nor APP_JWT_SECRET is set. Authentication will fail.');
 }
@@ -21,8 +23,10 @@ if (!process.env.OPENAI_API_KEY) {
 }
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3000', 10);
+// Use Railway's provided PORT or fall back to 3000
+const PORT = parseInt(process.env.PORT || process.env.RAILWAY_PUBLIC_PORT || '3000', 10);
 console.log('[STARTUP] Will bind to port:', PORT);
+console.log('[STARTUP] Node version:', process.version);
 
 // Middleware
 app.use(cors());
