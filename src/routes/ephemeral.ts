@@ -1,0 +1,41 @@
+import { Router, Response } from 'express';
+import { AuthenticatedRequest } from '../auth';
+import { resolveModel } from '../models';
+import { openaiRealtimeSession } from '../providers/openai';
+
+const router = Router();
+
+router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const kind = 'realtime.default';
+
+    // Resolve model configuration
+    const modelConfig = resolveModel(kind, req.channel);
+    console.log(`[EPHEMERAL] User ${req.user?.id}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
+
+    // Determine API key to use
+    const apiKey = req.apiKey || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({ error: 'No API key available' });
+      return;
+    }
+
+    // Call the appropriate provider
+    if (modelConfig.provider === 'openai') {
+      const result = await openaiRealtimeSession({
+        model: modelConfig.model,
+        key: apiKey
+      });
+
+      // Return the client_secret (ephemeral token)
+      res.json(result);
+    } else {
+      res.status(400).json({ error: `Unsupported provider: ${modelConfig.provider}` });
+    }
+  } catch (error: any) {
+    console.error('[EPHEMERAL] Error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+export default router;

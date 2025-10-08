@@ -1,0 +1,21 @@
+{
+  "channels": {
+    "stable": {
+      "chat.default": {
+        "provider": "openai",
+        "model": "gpt-4"
+      },
+      "realtime.default": {
+        "provider": "openai",
+        "model": "gpt-4o-realtime-preview"
+      }
+    },
+    "beta": {
+      "chat.default": {
+        "provider": "openai",
+        "model": "gpt-4-turbo"
+      }
+    }
+  },
+  "deprecated": []
+}
