@@ -67,8 +67,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Start server
-const server = app.listen(PORT, () => {
-  console.log(`\n🚀 Studio API server running on port ${PORT}`);
+const HOST = '0.0.0.0';
+const server = app.listen(PORT, HOST, () => {
+  console.log(`\n🚀 Studio API server running on ${HOST}:${PORT}`);
   console.log(`📚 Model catalog endpoint: http://localhost:${PORT}/v1/models`);
   console.log(`💬 Chat endpoint: http://localhost:${PORT}/v1/chat`);
   console.log(`⚡ Ephemeral endpoint: http://localhost:${PORT}/v1/ephemeral`);
