@@ -1,11 +1,11 @@
-import { Router, Response } from 'express';
+import { Router, Response, RequestHandler } from 'express';
 import { AuthenticatedRequest } from '../auth';
 import { resolveModel } from '../models';
 import { openaiRealtimeSession } from '../providers/openai';
 
 const router = Router();
 
-router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/', (async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const kind = 'realtime.default';
 
@@ -36,6 +36,6 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
     console.error('[EPHEMERAL] Error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
-});
+}) as any);
 
 export default router;

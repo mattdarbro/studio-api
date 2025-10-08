@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, RequestHandler } from 'express';
 import { AuthenticatedRequest } from '../auth';
 import { resolveModel } from '../models';
 import { openaiChat } from '../providers/openai';
@@ -15,7 +15,7 @@ interface ChatRequestBody {
   kind?: string;
 }
 
-router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { messages, kind = 'chat.default' } = req.body as ChatRequestBody;
 
@@ -52,6 +52,6 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
     console.error('[CHAT] Error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
-});
+}) as any);
 
 export default router;
