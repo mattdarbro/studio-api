@@ -34,8 +34,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint (no auth required)
+// Health check endpoints (no auth required)
+app.get('/', (req, res) => {
+  console.log('[HEALTH] Root endpoint hit');
+  res.json({ status: 'ok', service: 'studio-api', timestamp: new Date().toISOString() });
+});
+
 app.get('/health', (req, res) => {
+  console.log('[HEALTH] Health endpoint hit');
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
