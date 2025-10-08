@@ -78,6 +78,20 @@ const server = app.listen(PORT, HOST, () => {
   console.log(`❤️  Health check: http://localhost:${PORT}/health\n`);
 });
 
+// Keep the server alive
+server.on('error', (error: any) => {
+  console.error('[SERVER] Server error:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`[SERVER] Port ${PORT} is already in use`);
+    process.exit(1);
+  }
+});
+
+// Log when server is closing
+server.on('close', () => {
+  console.log('[SERVER] Server closed');
+});
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('[SHUTDOWN] SIGTERM received, closing server...');
