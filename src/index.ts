@@ -10,6 +10,15 @@ import ephemeralRouter from './routes/ephemeral';
 // Load environment variables
 dotenv.config();
 
+// Validate critical environment variables
+console.log('[STARTUP] Checking environment configuration...');
+if (!process.env.APP_KEY && !process.env.APP_JWT_SECRET) {
+  console.warn('[STARTUP] Warning: Neither APP_KEY nor APP_JWT_SECRET is set. Authentication will fail.');
+}
+if (!process.env.OPENAI_API_KEY) {
+  console.warn('[STARTUP] Warning: OPENAI_API_KEY is not set. Users must provide their own API keys.');
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -58,10 +67,38 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`\n🚀 Studio API server running on port ${PORT}`);
   console.log(`📚 Model catalog endpoint: http://localhost:${PORT}/v1/models`);
   console.log(`💬 Chat endpoint: http://localhost:${PORT}/v1/chat`);
   console.log(`⚡ Ephemeral endpoint: http://localhost:${PORT}/v1/ephemeral`);
   console.log(`❤️  Health check: http://localhost:${PORT}/health\n`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('[SHUTDOWN] SIGTERM received, closing server...');
+  server.close(() => {
+    console.log('[SHUTDOWN] Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('[SHUTDOWN] SIGINT received, closing server...');
+  server.close(() => {
+    console.log('[SHUTDOWN] Server closed');
+    process.exit(0);
+  });
+});
+
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+  console.error('[FATAL] Uncaught exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
