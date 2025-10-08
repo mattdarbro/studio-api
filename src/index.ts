@@ -12,6 +12,7 @@ dotenv.config();
 
 // Validate critical environment variables
 console.log('[STARTUP] Checking environment configuration...');
+console.log('[STARTUP] PORT env var:', process.env.PORT);
 if (!process.env.APP_KEY && !process.env.APP_JWT_SECRET) {
   console.warn('[STARTUP] Warning: Neither APP_KEY nor APP_JWT_SECRET is set. Authentication will fail.');
 }
@@ -21,6 +22,7 @@ if (!process.env.OPENAI_API_KEY) {
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
+console.log('[STARTUP] Will bind to port:', PORT);
 
 // Middleware
 app.use(cors());
