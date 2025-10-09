@@ -42,7 +42,7 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
     }
 
     // Determine API key to use
-    const apiKey = req.apiKey || process.env.REPLICATE_API_KEY;
+    const apiKey = req.apiKeys?.replicate || process.env.REPLICATE_API_KEY;
     if (!apiKey) {
       res.status(500).json({ error: 'No Replicate API key available' });
       return;
@@ -97,7 +97,7 @@ router.get('/:id', (async (req: AuthenticatedRequest, res: Response): Promise<vo
     const { id } = req.params;
 
     // Determine API key to use
-    const apiKey = req.apiKey || process.env.REPLICATE_API_KEY;
+    const apiKey = req.apiKeys?.replicate || process.env.REPLICATE_API_KEY;
     if (!apiKey) {
       res.status(500).json({ error: 'No Replicate API key available' });
       return;

@@ -7,7 +7,11 @@ export interface AuthenticatedRequest extends Request {
     [key: string]: any;
   };
   channel: string;
-  apiKey?: string;
+  apiKeys?: {
+    openai?: string;
+    replicate?: string;
+    elevenlabs?: string;
+  };
 }
 
 export const authMiddleware = (
@@ -25,16 +29,16 @@ export const authMiddleware = (
 
     req.channel = channel;
 
-    // Store user-provided API keys
-    // The route handlers will check for these keys based on the provider they need
+    // Store user-provided API keys separately for each service
+    req.apiKeys = {};
     if (userOpenAIKey) {
-      req.apiKey = userOpenAIKey;
+      req.apiKeys.openai = userOpenAIKey;
     }
     if (userReplicateKey) {
-      req.apiKey = userReplicateKey;
+      req.apiKeys.replicate = userReplicateKey;
     }
     if (userElevenLabsKey) {
-      req.apiKey = userElevenLabsKey;
+      req.apiKeys.elevenlabs = userElevenLabsKey;
     }
 
     // Check for app key authentication

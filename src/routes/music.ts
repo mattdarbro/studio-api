@@ -41,7 +41,7 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
     }
 
     // Determine API key to use
-    const apiKey = req.apiKey || process.env.ELEVENLABS_API_KEY;
+    const apiKey = req.apiKeys?.elevenlabs || process.env.ELEVENLABS_API_KEY;
     if (!apiKey) {
       res.status(500).json({ error: 'No ElevenLabs API key available' });
       return;

@@ -14,9 +14,9 @@ router.get('/', (async (req: AuthenticatedRequest, res: Response): Promise<void>
     console.log(`[EPHEMERAL] User ${req.user?.id}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
 
     // Determine API key to use
-    const apiKey = req.apiKey || process.env.OPENAI_API_KEY;
+    const apiKey = req.apiKeys?.openai || process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      res.status(500).json({ error: 'No API key available' });
+      res.status(500).json({ error: 'No OpenAI API key available' });
       return;
     }
 
