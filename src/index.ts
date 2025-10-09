@@ -6,6 +6,8 @@ import { rateLimitMiddleware } from './rateLimit';
 import { getCatalog } from './models';
 import chatRouter from './routes/chat';
 import ephemeralRouter from './routes/ephemeral';
+import imagesRouter from './routes/images';
+import musicRouter from './routes/music';
 
 // Load environment variables
 dotenv.config();
@@ -66,6 +68,8 @@ app.get('/v1/models', (req, res) => {
 
 app.use('/v1/chat', chatRouter);
 app.use('/v1/ephemeral', ephemeralRouter);
+app.use('/v1/images', imagesRouter);
+app.use('/v1/music', musicRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -81,10 +85,12 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Start server
 const HOST = '0.0.0.0';
 const server = app.listen(PORT, HOST, () => {
-  console.log(`\n🚀 Studio API server running on ${HOST}:${PORT}`);
+  console.log(`\n🚀 Lucid API server running on ${HOST}:${PORT}`);
   console.log(`📚 Model catalog endpoint: http://localhost:${PORT}/v1/models`);
   console.log(`💬 Chat endpoint: http://localhost:${PORT}/v1/chat`);
   console.log(`⚡ Ephemeral endpoint: http://localhost:${PORT}/v1/ephemeral`);
+  console.log(`🎨 Images endpoint: http://localhost:${PORT}/v1/images`);
+  console.log(`🎵 Music endpoint: http://localhost:${PORT}/v1/music`);
   console.log(`❤️  Health check: http://localhost:${PORT}/health\n`);
 });
 

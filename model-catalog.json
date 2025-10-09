@@ -8,12 +8,42 @@
       "realtime.default": {
         "provider": "openai",
         "model": "gpt-4o-realtime-preview"
+      },
+      "image.default": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-schnell"
+      },
+      "image.flux-dev": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-dev"
+      },
+      "image.flux-pro": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-pro"
+      },
+      "music.default": {
+        "provider": "elevenlabs",
+        "model": "eleven_music_generation_v1"
       }
     },
     "beta": {
       "chat.default": {
         "provider": "openai",
         "model": "gpt-4-turbo"
+      },
+      "image.default": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-dev"
+      }
+    },
+    "fast": {
+      "chat.default": {
+        "provider": "openai",
+        "model": "gpt-4o-mini"
+      },
+      "image.default": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-schnell"
       }
     }
   },

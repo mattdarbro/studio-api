@@ -6,18 +6,18 @@ Studio API (Lucid) is a centralized LLM provider gateway that manages model rout
 
 **Production URL:** `https://studio-api-production-3deb.up.railway.app`
 
-## Current Limitations
+## Supported Providers
 
-**Supported Providers:**
-- ✅ OpenAI (chat completions, realtime API)
+- ✅ **OpenAI** - Chat completions, realtime API
+- ✅ **Replicate** - Image generation (Flux models)
+- ✅ **ElevenLabs** - Music generation
 
-**Not Yet Supported (use direct APIs for now):**
-- ❌ Replicate (image generation)
-- ❌ ElevenLabs (music generation)
+**Coming Soon:**
 - ❌ Anthropic (Claude)
 - ❌ Google (Gemini)
+- ❌ More image models
 
-See [ROADMAP.md](./ROADMAP.md) for planned provider integrations.
+See [ROADMAP.md](./ROADMAP.md) for the full roadmap.
 
 ## Authentication
 
@@ -39,11 +39,22 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" https://studio-api-production-3de
 If Studio API has `OPENAI_API_KEY` configured, it will use that by default.
 
 ### User-Provided Keys
-Users can provide their own OpenAI API key:
+Users can provide their own API keys for any provider:
 ```bash
+# OpenAI key
 curl -H "x-app-key: YOUR_APP_KEY" \
      -H "x-user-openai-key: sk-..." \
      https://studio-api-production-3deb.up.railway.app/v1/chat
+
+# Replicate key
+curl -H "x-app-key: YOUR_APP_KEY" \
+     -H "x-user-replicate-key: r8_..." \
+     https://studio-api-production-3deb.up.railway.app/v1/images
+
+# ElevenLabs key
+curl -H "x-app-key: YOUR_APP_KEY" \
+     -H "x-user-elevenlabs-key: el_..." \
+     https://studio-api-production-3deb.up.railway.app/v1/music
 ```
 
 ## Model Channels
@@ -160,12 +171,147 @@ curl https://studio-api-production-3deb.up.railway.app/v1/ephemeral \
   -H "x-app-key: YOUR_APP_KEY"
 ```
 
+### POST /v1/images
+Generate images using Replicate
+
+**Headers:**
+- `x-app-key` or `Authorization: Bearer <token>` (required)
+- `x-model-channel` (optional, default: "stable")
+- `x-user-replicate-key` (optional, user's own API key)
+
+**Request Body:**
+```json
+{
+  "prompt": "a cat wearing sunglasses on a beach",
+  "kind": "image.default",
+  "width": 1024,
+  "height": 1024,
+  "num_outputs": 1,
+  "wait": true
+}
+```
+
+**Parameters:**
+- `prompt` (required): Text description of the image
+- `kind` (optional): Model kind (e.g., "image.default", "image.flux-dev", "image.flux-pro")
+- `width` (optional): Image width in pixels (default: 1024)
+- `height` (optional): Image height in pixels (default: 1024)
+- `num_outputs` (optional): Number of images to generate (default: 1)
+- `wait` (optional): If true, waits for generation to complete before responding (default: true)
+
+**Response (when wait=true):**
+```json
+{
+  "id": "prediction-id",
+  "status": "succeeded",
+  "output": ["https://replicate.delivery/..."],
+  "urls": {
+    "get": "https://api.replicate.com/v1/predictions/...",
+    "cancel": "https://api.replicate.com/v1/predictions/.../cancel"
+  }
+}
+```
+
+**Response (when wait=false):**
+```json
+{
+  "id": "prediction-id",
+  "status": "processing",
+  "urls": {
+    "get": "https://api.replicate.com/v1/predictions/..."
+  }
+}
+```
+
+**Example:**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/images \
+  -H "Content-Type: application/json" \
+  -H "x-app-key: YOUR_APP_KEY" \
+  -d '{
+    "prompt": "a futuristic city at sunset",
+    "kind": "image.flux-schnell",
+    "width": 1024,
+    "height": 1024
+  }'
+```
+
+### GET /v1/images/:id
+Check status of an image generation
+
+**Headers:**
+- `x-app-key` or `Authorization: Bearer <token>` (required)
+- `x-user-replicate-key` (optional)
+
+**Response:**
+```json
+{
+  "id": "prediction-id",
+  "status": "succeeded",
+  "output": ["https://replicate.delivery/..."]
+}
+```
+
+### POST /v1/music
+Generate music using ElevenLabs
+
+**Headers:**
+- `x-app-key` or `Authorization: Bearer <token>` (required)
+- `x-model-channel` (optional, default: "stable")
+- `x-user-elevenlabs-key` (optional, user's own API key)
+
+**Request Body:**
+```json
+{
+  "prompt": "upbeat electronic music with piano",
+  "kind": "music.default",
+  "duration": 30
+}
+```
+
+**Parameters:**
+- `prompt` (required): Text description of the music
+- `kind` (optional): Model kind (default: "music.default")
+- `duration` (optional): Duration in seconds, 1-300 (default: 30)
+
+**Response:**
+```json
+{
+  "generation_id": "gen_...",
+  "status": "completed",
+  "audio_url": "https://...",
+  "audio_base64": "..."
+}
+```
+
+**Example:**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/music \
+  -H "Content-Type: application/json" \
+  -H "x-app-key: YOUR_APP_KEY" \
+  -d '{
+    "prompt": "peaceful ambient music for meditation",
+    "duration": 60
+  }'
+```
+
 ## Model Kinds
 
 Available model kinds (configurable in `model-catalog.json`):
 
-- `chat.default` - Standard chat completion
+**Chat:**
+- `chat.default` - Standard chat completion (GPT-4)
+
+**Realtime:**
 - `realtime.default` - Realtime audio/voice API
+
+**Images:**
+- `image.default` - Fast image generation (Flux Schnell)
+- `image.flux-dev` - High quality (Flux Dev)
+- `image.flux-pro` - Professional quality (Flux Pro)
+
+**Music:**
+- `music.default` - Music generation (ElevenLabs)
 
 ## Rate Limiting
 

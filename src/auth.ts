@@ -20,12 +20,21 @@ export const authMiddleware = (
     const appKey = req.headers['x-app-key'] as string | undefined;
     const channel = (req.headers['x-model-channel'] as string) || 'stable';
     const userOpenAIKey = req.headers['x-user-openai-key'] as string | undefined;
+    const userReplicateKey = req.headers['x-user-replicate-key'] as string | undefined;
+    const userElevenLabsKey = req.headers['x-user-elevenlabs-key'] as string | undefined;
 
     req.channel = channel;
 
-    // If user provides their own OpenAI key, store it
+    // Store user-provided API keys
+    // The route handlers will check for these keys based on the provider they need
     if (userOpenAIKey) {
       req.apiKey = userOpenAIKey;
+    }
+    if (userReplicateKey) {
+      req.apiKey = userReplicateKey;
+    }
+    if (userElevenLabsKey) {
+      req.apiKey = userElevenLabsKey;
     }
 
     // Check for app key authentication
