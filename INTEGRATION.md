@@ -2,9 +2,22 @@
 
 ## Overview
 
-Studio API is a centralized LLM provider gateway that manages model routing, authentication, and API key management for your applications.
+Studio API (Lucid) is a centralized LLM provider gateway that manages model routing, authentication, and API key management for your applications.
 
 **Production URL:** `https://studio-api-production-3deb.up.railway.app`
+
+## Current Limitations
+
+**Supported Providers:**
+- ✅ OpenAI (chat completions, realtime API)
+
+**Not Yet Supported (use direct APIs for now):**
+- ❌ Replicate (image generation)
+- ❌ ElevenLabs (music generation)
+- ❌ Anthropic (Claude)
+- ❌ Google (Gemini)
+
+See [ROADMAP.md](./ROADMAP.md) for planned provider integrations.
 
 ## Authentication
 
