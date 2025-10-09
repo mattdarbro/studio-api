@@ -25,6 +25,20 @@ export async function replicateCreatePrediction(params: ReplicateImageParams): P
 
   console.log(`[REPLICATE] Creating prediction for model: ${model}`);
 
+  // Determine if model is a version hash or model name
+  const isVersionHash = model.length > 40 && !model.includes('/');
+  const requestBody = isVersionHash 
+    ? {
+        version: model,
+        input: { prompt, width, height, num_outputs }
+      }
+    : {
+        model: model,
+        input: { prompt, width, height, num_outputs }
+      };
+
+  console.log(`[REPLICATE] Request body:`, JSON.stringify(requestBody, null, 2));
+
   const response = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: {
@@ -32,15 +46,7 @@ export async function replicateCreatePrediction(params: ReplicateImageParams): P
       'Content-Type': 'application/json',
       'Prefer': 'wait'
     },
-    body: JSON.stringify({
-      version: model,
-      input: {
-        prompt,
-        width,
-        height,
-        num_outputs
-      }
-    })
+    body: JSON.stringify(requestBody)
   });
 
   if (!response.ok) {
