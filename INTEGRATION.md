@@ -1,0 +1,280 @@
+# Studio API Integration Guide
+
+## Overview
+
+Studio API is a centralized LLM provider gateway that manages model routing, authentication, and API key management for your applications.
+
+**Production URL:** `https://studio-api-production-3deb.up.railway.app`
+
+## Authentication
+
+All endpoints (except `/health`) require authentication via one of two methods:
+
+### Method 1: App Key (Recommended for server-side)
+```bash
+curl -H "x-app-key: YOUR_APP_KEY" https://studio-api-production-3deb.up.railway.app/v1/models
+```
+
+### Method 2: JWT Token (Recommended for user-specific access)
+```bash
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" https://studio-api-production-3deb.up.railway.app/v1/models
+```
+
+## API Keys
+
+### Server-Managed Keys
+If Studio API has `OPENAI_API_KEY` configured, it will use that by default.
+
+### User-Provided Keys
+Users can provide their own OpenAI API key:
+```bash
+curl -H "x-app-key: YOUR_APP_KEY" \
+     -H "x-user-openai-key: sk-..." \
+     https://studio-api-production-3deb.up.railway.app/v1/chat
+```
+
+## Model Channels
+
+Control which model version to use via the `x-model-channel` header:
+
+- `stable` (default) - Production-ready models
+- `experimental` - Latest/beta models
+- `fast` - Optimized for speed
+- `quality` - Optimized for quality
+
+```bash
+curl -H "x-app-key: YOUR_APP_KEY" \
+     -H "x-model-channel: experimental" \
+     https://studio-api-production-3deb.up.railway.app/v1/chat
+```
+
+## Endpoints
+
+### GET /health
+Health check endpoint (no auth required)
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-10-08T20:46:51.211Z"
+}
+```
+
+### GET /v1/models
+Get available model catalog
+
+**Headers:**
+- `x-app-key` or `Authorization: Bearer <token>` (required)
+- `x-model-channel` (optional, default: "stable")
+
+**Response:**
+```json
+{
+  "channels": {
+    "stable": {
+      "chat.default": {
+        "provider": "openai",
+        "model": "gpt-4"
+      },
+      "realtime.default": {
+        "provider": "openai",
+        "model": "gpt-4o-realtime-preview-2024-10-01"
+      }
+    }
+  },
+  "deprecated": []
+}
+```
+
+### POST /v1/chat
+Send chat completion request
+
+**Headers:**
+- `x-app-key` or `Authorization: Bearer <token>` (required)
+- `x-model-channel` (optional, default: "stable")
+- `x-user-openai-key` (optional, user's own API key)
+
+**Request Body:**
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello!"
+    }
+  ],
+  "kind": "chat.default"
+}
+```
+
+**Response:** Standard OpenAI chat completion response
+
+**Example:**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/chat \
+  -H "Content-Type: application/json" \
+  -H "x-app-key: YOUR_APP_KEY" \
+  -d '{
+    "messages": [
+      {"role": "user", "content": "Hello!"}
+    ],
+    "kind": "chat.default"
+  }'
+```
+
+### GET /v1/ephemeral
+Get ephemeral token for realtime API
+
+**Headers:**
+- `x-app-key` or `Authorization: Bearer <token>` (required)
+- `x-model-channel` (optional, default: "stable")
+- `x-user-openai-key` (optional, user's own API key)
+
+**Response:**
+```json
+{
+  "client_secret": {
+    "value": "ek_...",
+    "expires_at": 1234567890
+  }
+}
+```
+
+**Example:**
+```bash
+curl https://studio-api-production-3deb.up.railway.app/v1/ephemeral \
+  -H "x-app-key: YOUR_APP_KEY"
+```
+
+## Model Kinds
+
+Available model kinds (configurable in `model-catalog.json`):
+
+- `chat.default` - Standard chat completion
+- `realtime.default` - Realtime audio/voice API
+
+## Rate Limiting
+
+Studio API includes built-in rate limiting:
+- 100 requests per 15 minutes per user/IP
+- Rate limit headers included in responses
+
+## Error Responses
+
+All errors return JSON with an `error` field:
+
+**Authentication Error (401):**
+```json
+{
+  "error": "Authentication required: provide Bearer token or x-app-key header"
+}
+```
+
+**Invalid App Key (401):**
+```json
+{
+  "error": "Invalid app key"
+}
+```
+
+**Missing Messages (400):**
+```json
+{
+  "error": "messages array is required and must not be empty"
+}
+```
+
+**Model Not Found (500):**
+```json
+{
+  "error": "Model kind \"invalid\" not found in channel \"stable\" or stable fallback"
+}
+```
+
+## Migration Checklist
+
+When migrating an app to use Studio API:
+
+- [ ] Replace direct OpenAI API calls with Studio API endpoints
+- [ ] Update base URL to `https://studio-api-production-3deb.up.railway.app`
+- [ ] Add `x-app-key` header to all requests
+- [ ] Remove OpenAI API key from client-side code (if any)
+- [ ] Update chat endpoint from `/v1/chat/completions` to `/v1/chat`
+- [ ] Update model selection to use `kind` parameter instead of `model`
+- [ ] Add model channel selection if needed (`x-model-channel` header)
+- [ ] Test with health check endpoint first
+- [ ] Handle new error response format
+
+## Example Migration
+
+### Before (Direct OpenAI):
+```javascript
+const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'gpt-4',
+    messages: [{ role: 'user', content: 'Hello!' }]
+  })
+});
+```
+
+### After (Studio API):
+```javascript
+const response = await fetch('https://studio-api-production-3deb.up.railway.app/v1/chat', {
+  method: 'POST',
+  headers: {
+    'x-app-key': APP_KEY,
+    'Content-Type': 'application/json',
+    // Optional: let users provide their own key
+    // 'x-user-openai-key': userApiKey,
+    // Optional: select model channel
+    // 'x-model-channel': 'experimental',
+  },
+  body: JSON.stringify({
+    kind: 'chat.default',
+    messages: [{ role: 'user', content: 'Hello!' }]
+  })
+});
+```
+
+## Environment Variables Needed
+
+Your apps will need:
+
+```env
+# Required
+STUDIO_API_URL=https://studio-api-production-3deb.up.railway.app
+STUDIO_API_KEY=<your-app-key>
+
+# Optional
+STUDIO_API_CHANNEL=stable
+```
+
+## Testing
+
+Test the connection:
+```bash
+# Health check (no auth)
+curl https://studio-api-production-3deb.up.railway.app/health
+
+# Get models (with auth)
+curl -H "x-app-key: YOUR_APP_KEY" \
+  https://studio-api-production-3deb.up.railway.app/v1/models
+
+# Chat request (with auth)
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/chat \
+  -H "Content-Type: application/json" \
+  -H "x-app-key: YOUR_APP_KEY" \
+  -d '{"messages":[{"role":"user","content":"test"}],"kind":"chat.default"}'
+```
+
+## Support
+
+- Check deployment logs in Railway for API errors
+- Health endpoint: `https://studio-api-production-3deb.up.railway.app/health`
+- All requests are logged with timestamps for debugging
