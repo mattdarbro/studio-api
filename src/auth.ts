@@ -11,6 +11,8 @@ export interface AuthenticatedRequest extends Request {
     openai?: string;
     replicate?: string;
     elevenlabs?: string;
+    anthropic?: string;
+    grok?: string;
   };
 }
 
@@ -26,6 +28,8 @@ export const authMiddleware = (
     const userOpenAIKey = req.headers['x-user-openai-key'] as string | undefined;
     const userReplicateKey = req.headers['x-user-replicate-key'] as string | undefined;
     const userElevenLabsKey = req.headers['x-user-elevenlabs-key'] as string | undefined;
+    const userAnthropicKey = req.headers['x-user-anthropic-key'] as string | undefined;
+    const userGrokKey = req.headers['x-user-grok-key'] as string | undefined;
 
     req.channel = channel;
 
@@ -39,6 +43,12 @@ export const authMiddleware = (
     }
     if (userElevenLabsKey) {
       req.apiKeys.elevenlabs = userElevenLabsKey;
+    }
+    if (userAnthropicKey) {
+      req.apiKeys.anthropic = userAnthropicKey;
+    }
+    if (userGrokKey) {
+      req.apiKeys.grok = userGrokKey;
     }
 
     // Check for app key authentication

@@ -2,6 +2,8 @@ import { Router, Response, RequestHandler } from 'express';
 import { AuthenticatedRequest } from '../auth';
 import { resolveModel } from '../models';
 import { openaiChat } from '../providers/openai';
+import { anthropicChat } from '../providers/anthropic';
+import { grokChat } from '../providers/grok';
 
 const router = Router();
 
@@ -29,16 +31,43 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
     const modelConfig = resolveModel(kind, req.channel);
     console.log(`[CHAT] User ${req.user?.id}, kind: ${kind}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
 
-    // Determine API key to use
-    const apiKey = req.apiKeys?.openai || process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      res.status(500).json({ error: 'No OpenAI API key available' });
-      return;
-    }
-
     // Call the appropriate provider
     if (modelConfig.provider === 'openai') {
+      const apiKey = req.apiKeys?.openai || process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        res.status(500).json({ error: 'No OpenAI API key available' });
+        return;
+      }
+
       const result = await openaiChat({
+        model: modelConfig.model,
+        messages,
+        key: apiKey
+      });
+
+      res.json(result);
+    } else if (modelConfig.provider === 'anthropic') {
+      const apiKey = req.apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) {
+        res.status(500).json({ error: 'No Anthropic API key available' });
+        return;
+      }
+
+      const result = await anthropicChat({
+        model: modelConfig.model,
+        messages,
+        key: apiKey
+      });
+
+      res.json(result);
+    } else if (modelConfig.provider === 'grok') {
+      const apiKey = req.apiKeys?.grok || process.env.GROK_API_KEY;
+      if (!apiKey) {
+        res.status(500).json({ error: 'No Grok API key available' });
+        return;
+      }
+
+      const result = await grokChat({
         model: modelConfig.model,
         messages,
         key: apiKey

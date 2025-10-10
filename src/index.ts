@@ -20,9 +20,17 @@ console.log('[STARTUP] Railway PORT:', process.env.RAILWAY_PUBLIC_PORT);
 if (!process.env.APP_KEY && !process.env.APP_JWT_SECRET) {
   console.warn('[STARTUP] Warning: Neither APP_KEY nor APP_JWT_SECRET is set. Authentication will fail.');
 }
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('[STARTUP] Warning: OPENAI_API_KEY is not set. Users must provide their own API keys.');
-}
+
+// Check for provider API keys
+const providers = ['OPENAI', 'ANTHROPIC', 'GROK', 'REPLICATE', 'ELEVENLABS'];
+providers.forEach(provider => {
+  const keyName = `${provider}_API_KEY`;
+  if (process.env[keyName]) {
+    console.log(`[STARTUP] ✓ ${provider} API key configured`);
+  } else {
+    console.warn(`[STARTUP] ⚠ ${provider}_API_KEY not set. Users must provide their own API keys.`);
+  }
+});
 
 const app = express();
 // Use Railway's provided PORT or fall back to 3000

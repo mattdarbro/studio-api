@@ -3,7 +3,27 @@
     "stable": {
       "chat.default": {
         "provider": "openai",
-        "model": "gpt-4"
+        "model": "gpt-5"
+      },
+      "chat.gpt5": {
+        "provider": "openai",
+        "model": "gpt-5"
+      },
+      "chat.claude": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5-20250929"
+      },
+      "chat.claude45": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5-20250929"
+      },
+      "chat.grok": {
+        "provider": "grok",
+        "model": "grok-4-fast-reasoning"
+      },
+      "chat.grokLatest": {
+        "provider": "grok",
+        "model": "grok-4-fast-reasoning"
       },
       "realtime.default": {
         "provider": "openai",
@@ -29,7 +49,27 @@
     "beta": {
       "chat.default": {
         "provider": "openai",
-        "model": "gpt-4-turbo"
+        "model": "gpt-5-preview"
+      },
+      "chat.gpt5": {
+        "provider": "openai",
+        "model": "gpt-5-preview"
+      },
+      "chat.claude": {
+        "provider": "anthropic",
+        "model": "claude-4.5-sonnet-preview"
+      },
+      "chat.claude45": {
+        "provider": "anthropic",
+        "model": "claude-4.5-sonnet-preview"
+      },
+      "chat.grok": {
+        "provider": "grok",
+        "model": "grok-3-beta"
+      },
+      "chat.grokLatest": {
+        "provider": "grok",
+        "model": "grok-3-beta"
       },
       "image.default": {
         "provider": "replicate",
@@ -41,11 +81,24 @@
         "provider": "openai",
         "model": "gpt-4o-mini"
       },
+      "chat.claude": {
+        "provider": "anthropic",
+        "model": "claude-3-5-haiku-20241022"
+      },
+      "chat.grok": {
+        "provider": "grok",
+        "model": "grok-4-fast-nonreasoning"
+      },
       "image.default": {
         "provider": "replicate",
         "model": "black-forest-labs/flux-schnell"
       }
     }
   },
-  "deprecated": []
+  "deprecated": [
+    "gpt-4",
+    "gpt-4-turbo",
+    "claude-3-5-sonnet-20241022",
+    "grok-beta"
+  ]
 }
