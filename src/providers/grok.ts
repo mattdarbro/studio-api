@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { logger } from '../logger';
 
 interface ChatMessage {
   role: string;
@@ -12,7 +13,7 @@ interface GrokChatRequest {
 }
 
 export async function grokChat({ model, messages, key }: GrokChatRequest): Promise<any> {
-  console.log(`[GROK] Making chat request with model: ${model}`);
+  logger.debug(`Grok chat request with model: ${model}`);
 
   // Grok (xAI) uses OpenAI-compatible API
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -29,12 +30,12 @@ export async function grokChat({ model, messages, key }: GrokChatRequest): Promi
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`[GROK] API error: ${response.status} - ${errorText}`);
+    logger.error(`Grok API error: ${response.status} - ${errorText}`);
     throw new Error(`Grok API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  console.log(`[GROK] Chat request successful, usage: ${JSON.stringify(data.usage || {})}`);
+  logger.debug(`Grok chat successful, usage: ${JSON.stringify(data.usage || {})}`);
   return data;
 }
 

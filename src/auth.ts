@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { logger } from './logger';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -61,7 +62,7 @@ export const authMiddleware = (
 
       if (appKey === validAppKey) {
         req.user = { id: 'app', type: 'app-key' };
-        console.log(`[AUTH] Authenticated via app-key, channel: ${channel}`);
+        logger.debug(`Authenticated via app-key, channel: ${channel}`);
         next();
         return;
       } else {
@@ -83,7 +84,7 @@ export const authMiddleware = (
       try {
         const decoded = jwt.verify(token, jwtSecret) as any;
         req.user = decoded;
-        console.log(`[AUTH] Authenticated user: ${decoded.id || 'unknown'}, channel: ${channel}`);
+        logger.debug(`Authenticated user: ${decoded.id || 'unknown'}, channel: ${channel}`);
         next();
         return;
       } catch (err) {
@@ -95,7 +96,7 @@ export const authMiddleware = (
     // No valid authentication found
     res.status(401).json({ error: 'Authentication required: provide Bearer token or x-app-key header' });
   } catch (error) {
-    console.error('[AUTH] Error:', error);
+    logger.error('Auth error:', error);
     res.status(500).json({ error: 'Authentication error' });
   }
 };

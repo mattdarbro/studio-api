@@ -2,6 +2,7 @@ import { Router, Response, RequestHandler } from 'express';
 import { AuthenticatedRequest } from '../auth';
 import { resolveModel } from '../models';
 import { replicateCreatePrediction, replicateGetPrediction, replicateWaitForPrediction } from '../providers/replicate';
+import { logger } from '../logger';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
 
     // Resolve model configuration
     const modelConfig = resolveModel(kind, req.channel);
-    console.log(`[IMAGES] User ${req.user?.id}, kind: ${kind}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
+    logger.debug(`User ${req.user?.id}, kind: ${kind}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
 
     if (modelConfig.provider !== 'replicate') {
       res.status(400).json({ error: `Image generation kind "${kind}" does not use replicate provider` });
@@ -60,7 +61,7 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
 
     // If wait=true, poll until complete
     if (wait) {
-      console.log(`[IMAGES] Waiting for prediction ${prediction.id} to complete...`);
+      logger.debug(`Waiting for prediction ${prediction.id} to complete...`);
       const finalPrediction = await replicateWaitForPrediction(prediction.id, apiKey);
 
       if (finalPrediction.status === 'failed') {
@@ -86,7 +87,7 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
       });
     }
   } catch (error: any) {
-    console.error('[IMAGES] Error:', error);
+    logger.error('Images error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }) as any);
@@ -113,7 +114,7 @@ router.get('/:id', (async (req: AuthenticatedRequest, res: Response): Promise<vo
       error: prediction.error
     });
   } catch (error: any) {
-    console.error('[IMAGES] Error:', error);
+    logger.error('Images error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }) as any);

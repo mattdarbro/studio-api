@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { logger } from '../logger';
 
 interface ElevenLabsMusicParams {
   prompt: string;
@@ -17,7 +18,7 @@ interface ElevenLabsMusicResponse {
 export async function elevenLabsGenerateMusic(params: ElevenLabsMusicParams): Promise<ElevenLabsMusicResponse> {
   const { prompt, duration = 30, key } = params;
 
-  console.log(`[ELEVENLABS] Generating music: "${prompt.substring(0, 50)}..." (${duration}s)`);
+  logger.debug(`ElevenLabs generating music: "${prompt.substring(0, 50)}..." (${duration}s)`);
 
   // ElevenLabs Music Generation API endpoint
   const response = await fetch('https://api.elevenlabs.io/v1/music-generation', {
@@ -35,12 +36,12 @@ export async function elevenLabsGenerateMusic(params: ElevenLabsMusicParams): Pr
 
   if (!response.ok) {
     const error = await response.text();
-    console.error('[ELEVENLABS] Error:', error);
+    logger.error(`ElevenLabs error: ${error}`);
     throw new Error(`ElevenLabs API error: ${response.status} ${error}`);
   }
 
   const result = await response.json() as any;
-  console.log(`[ELEVENLABS] Music generated successfully`);
+  logger.debug(`ElevenLabs music generated successfully`);
 
   // ElevenLabs returns audio data directly or as a URL depending on the endpoint
   // We'll normalize the response format
@@ -60,7 +61,7 @@ export async function elevenLabsTextToSpeech(params: {
 }): Promise<Buffer> {
   const { text, voice_id, key } = params;
 
-  console.log(`[ELEVENLABS] Text-to-speech: "${text.substring(0, 50)}..." with voice: ${voice_id}`);
+  logger.debug(`ElevenLabs text-to-speech: "${text.substring(0, 50)}..." with voice: ${voice_id}`);
 
   const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
     method: 'POST',

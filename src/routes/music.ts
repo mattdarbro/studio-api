@@ -2,6 +2,7 @@ import { Router, Response, RequestHandler } from 'express';
 import { AuthenticatedRequest } from '../auth';
 import { resolveModel } from '../models';
 import { elevenLabsGenerateMusic } from '../providers/elevenlabs';
+import { logger } from '../logger';
 
 const router = Router();
 
@@ -33,7 +34,7 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
 
     // Resolve model configuration
     const modelConfig = resolveModel(kind, req.channel);
-    console.log(`[MUSIC] User ${req.user?.id}, kind: ${kind}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
+    logger.debug(`User ${req.user?.id}, kind: ${kind}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
 
     if (modelConfig.provider !== 'elevenlabs') {
       res.status(400).json({ error: `Music generation kind "${kind}" does not use elevenlabs provider` });
@@ -62,7 +63,7 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
       error: result.error
     });
   } catch (error: any) {
-    console.error('[MUSIC] Error:', error);
+    logger.error('Music error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }) as any);

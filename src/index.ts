@@ -8,54 +8,49 @@ import chatRouter from './routes/chat';
 import ephemeralRouter from './routes/ephemeral';
 import imagesRouter from './routes/images';
 import musicRouter from './routes/music';
+import { logger } from './logger';
 
 // Load environment variables
 dotenv.config();
 
 // Validate critical environment variables
-console.log('[STARTUP] Checking environment configuration...');
-console.log('[STARTUP] All env vars:', Object.keys(process.env).filter(k => k.includes('PORT') || k.includes('HOST')));
-console.log('[STARTUP] PORT env var:', process.env.PORT);
-console.log('[STARTUP] Railway PORT:', process.env.RAILWAY_PUBLIC_PORT);
+logger.info('Checking environment configuration...');
 if (!process.env.APP_KEY && !process.env.APP_JWT_SECRET) {
-  console.warn('[STARTUP] Warning: Neither APP_KEY nor APP_JWT_SECRET is set. Authentication will fail.');
+  logger.warn('Neither APP_KEY nor APP_JWT_SECRET is set. Authentication will fail.');
 }
 
-// Check for provider API keys
+// Check for provider API keys (info level - important for startup)
 const providers = ['OPENAI', 'ANTHROPIC', 'GROK', 'REPLICATE', 'ELEVENLABS'];
 providers.forEach(provider => {
   const keyName = `${provider}_API_KEY`;
   if (process.env[keyName]) {
-    console.log(`[STARTUP] ✓ ${provider} API key configured`);
+    logger.info(`✓ ${provider} API key configured`);
   } else {
-    console.warn(`[STARTUP] ⚠ ${provider}_API_KEY not set. Users must provide their own API keys.`);
+    logger.warn(`⚠ ${provider}_API_KEY not set. Users must provide their own API keys.`);
   }
 });
 
 const app = express();
 // Use Railway's provided PORT or fall back to 3000
 const PORT: number = parseInt(process.env.PORT || process.env.RAILWAY_PUBLIC_PORT || '3000', 10);
-console.log('[STARTUP] Will bind to port:', PORT);
-console.log('[STARTUP] Node version:', process.version);
+logger.info(`Will bind to port: ${PORT}`);
 
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// Request logging
+// Request logging (debug level - too verbose for production)
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  logger.debug(`${req.method} ${req.path}`);
   next();
 });
 
 // Health check endpoints (no auth required)
 app.get('/', (req, res) => {
-  console.log('[HEALTH] Root endpoint hit');
   res.json({ status: 'ok', service: 'studio-api', timestamp: new Date().toISOString() });
 });
 
 app.get('/health', (req, res) => {
-  console.log('[HEALTH] Health endpoint hit');
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -69,7 +64,7 @@ app.get('/v1/models', (req, res) => {
     const catalog = getCatalog();
     res.json(catalog);
   } catch (error: any) {
-    console.error('[MODELS] Error:', error);
+    logger.error('Models error:', error);
     res.status(500).json({ error: error.message || 'Failed to load model catalog' });
   }
 });
@@ -86,60 +81,60 @@ app.use((req, res) => {
 
 // Error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('[ERROR]', err);
+  logger.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
 // Start server
 const HOST = '0.0.0.0';
 const server = app.listen(PORT, HOST, () => {
-  console.log(`\n🚀 Lucid API server running on ${HOST}:${PORT}`);
-  console.log(`📚 Model catalog endpoint: http://localhost:${PORT}/v1/models`);
-  console.log(`💬 Chat endpoint: http://localhost:${PORT}/v1/chat`);
-  console.log(`⚡ Ephemeral endpoint: http://localhost:${PORT}/v1/ephemeral`);
-  console.log(`🎨 Images endpoint: http://localhost:${PORT}/v1/images`);
-  console.log(`🎵 Music endpoint: http://localhost:${PORT}/v1/music`);
-  console.log(`❤️  Health check: http://localhost:${PORT}/health\n`);
+  logger.info(`🚀 Lucid API server running on ${HOST}:${PORT}`);
+  logger.info(`📚 Model catalog: http://localhost:${PORT}/v1/models`);
+  logger.info(`💬 Chat: http://localhost:${PORT}/v1/chat`);
+  logger.info(`⚡ Ephemeral: http://localhost:${PORT}/v1/ephemeral`);
+  logger.info(`🎨 Images: http://localhost:${PORT}/v1/images`);
+  logger.info(`🎵 Music: http://localhost:${PORT}/v1/music`);
+  logger.info(`❤️  Health: http://localhost:${PORT}/health`);
 });
 
 // Keep the server alive
 server.on('error', (error: any) => {
-  console.error('[SERVER] Server error:', error);
+  logger.error('Server error:', error);
   if (error.code === 'EADDRINUSE') {
-    console.error(`[SERVER] Port ${PORT} is already in use`);
+    logger.error(`Port ${PORT} is already in use`);
     process.exit(1);
   }
 });
 
 // Log when server is closing
 server.on('close', () => {
-  console.log('[SERVER] Server closed');
+  logger.info('Server closed');
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('[SHUTDOWN] SIGTERM received, closing server...');
+  logger.info('SIGTERM received, closing server...');
   server.close(() => {
-    console.log('[SHUTDOWN] Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('[SHUTDOWN] SIGINT received, closing server...');
+  logger.info('SIGINT received, closing server...');
   server.close(() => {
-    console.log('[SHUTDOWN] Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {
-  console.error('[FATAL] Uncaught exception:', error);
+  logger.error('Uncaught exception:', error);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[FATAL] Unhandled rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled rejection:', { promise, reason });
   process.exit(1);
 });

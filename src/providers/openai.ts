@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { logger } from '../logger';
 
 interface ChatMessage {
   role: string;
@@ -17,7 +18,7 @@ interface OpenAIRealtimeRequest {
 }
 
 export async function openaiChat({ model, messages, key }: OpenAIChatRequest): Promise<any> {
-  console.log(`[OPENAI] Making chat request with model: ${model}`);
+  logger.debug(`OpenAI chat request with model: ${model}`);
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -33,17 +34,17 @@ export async function openaiChat({ model, messages, key }: OpenAIChatRequest): P
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`[OPENAI] Chat API error: ${response.status} - ${errorText}`);
+    logger.error(`OpenAI chat API error: ${response.status} - ${errorText}`);
     throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  console.log(`[OPENAI] Chat request successful, usage: ${JSON.stringify(data.usage || {})}`);
+  logger.debug(`OpenAI chat successful, usage: ${JSON.stringify(data.usage || {})}`);
   return data;
 }
 
 export async function openaiRealtimeSession({ model, key }: OpenAIRealtimeRequest): Promise<any> {
-  console.log(`[OPENAI] Creating realtime session with model: ${model}`);
+  logger.debug(`OpenAI realtime session with model: ${model}`);
 
   const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
     method: 'POST',
@@ -59,11 +60,11 @@ export async function openaiRealtimeSession({ model, key }: OpenAIRealtimeReques
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`[OPENAI] Realtime API error: ${response.status} - ${errorText}`);
+    logger.error(`OpenAI realtime API error: ${response.status} - ${errorText}`);
     throw new Error(`OpenAI Realtime API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  console.log(`[OPENAI] Realtime session created successfully`);
+  logger.debug(`OpenAI realtime session created successfully`);
   return data;
 }

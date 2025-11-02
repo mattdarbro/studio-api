@@ -2,6 +2,7 @@ import { Router, Response, RequestHandler } from 'express';
 import { AuthenticatedRequest } from '../auth';
 import { resolveModel } from '../models';
 import { openaiRealtimeSession } from '../providers/openai';
+import { logger } from '../logger';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ router.get('/', (async (req: AuthenticatedRequest, res: Response): Promise<void>
 
     // Resolve model configuration
     const modelConfig = resolveModel(kind, req.channel);
-    console.log(`[EPHEMERAL] User ${req.user?.id}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
+    logger.debug(`User ${req.user?.id}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
 
     // Determine API key to use
     const apiKey = req.apiKeys?.openai || process.env.OPENAI_API_KEY;
@@ -33,7 +34,7 @@ router.get('/', (async (req: AuthenticatedRequest, res: Response): Promise<void>
       res.status(400).json({ error: `Unsupported provider: ${modelConfig.provider}` });
     }
   } catch (error: any) {
-    console.error('[EPHEMERAL] Error:', error);
+    logger.error('Ephemeral error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }) as any);

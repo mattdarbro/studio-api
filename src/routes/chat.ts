@@ -4,6 +4,7 @@ import { resolveModel } from '../models';
 import { openaiChat } from '../providers/openai';
 import { anthropicChat } from '../providers/anthropic';
 import { grokChat } from '../providers/grok';
+import { logger } from '../logger';
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
 
     // Resolve model configuration
     const modelConfig = resolveModel(kind, req.channel);
-    console.log(`[CHAT] User ${req.user?.id}, kind: ${kind}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
+    logger.debug(`User ${req.user?.id}, kind: ${kind}, provider: ${modelConfig.provider}, model: ${modelConfig.model}`);
 
     // Call the appropriate provider
     if (modelConfig.provider === 'openai') {
@@ -78,7 +79,7 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
       res.status(400).json({ error: `Unsupported provider: ${modelConfig.provider}` });
     }
   } catch (error: any) {
-    console.error('[CHAT] Error:', error);
+    logger.error('Chat error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }) as any);

@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from './logger';
 
 interface ModelConfig {
   provider: string;
@@ -34,14 +35,14 @@ export function resolveModel(kind: string, channel: string = 'stable'): ModelCon
   // Try to find model in requested channel
   if (catalog.channels[channel] && catalog.channels[channel][kind]) {
     const config = catalog.channels[channel][kind];
-    console.log(`[MODELS] Resolved ${kind} in channel ${channel} -> ${config.provider}/${config.model}`);
+    logger.debug(`Resolved ${kind} in channel ${channel} -> ${config.provider}/${config.model}`);
     return config;
   }
 
   // Fall back to stable channel if not found
   if (channel !== 'stable' && catalog.channels.stable && catalog.channels.stable[kind]) {
     const config = catalog.channels.stable[kind];
-    console.log(`[MODELS] Fallback: ${kind} not in ${channel}, using stable -> ${config.provider}/${config.model}`);
+    logger.debug(`Fallback: ${kind} not in ${channel}, using stable -> ${config.provider}/${config.model}`);
     return config;
   }
 

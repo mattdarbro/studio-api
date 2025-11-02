@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { logger } from '../logger';
 
 interface ChatMessage {
   role: string;
@@ -13,7 +14,7 @@ interface AnthropicChatRequest {
 }
 
 export async function anthropicChat({ model, messages, key, max_tokens = 4096 }: AnthropicChatRequest): Promise<any> {
-  console.log(`[ANTHROPIC] Making chat request with model: ${model}`);
+  logger.debug(`Anthropic chat request with model: ${model}`);
 
   // Convert OpenAI-style messages to Anthropic format
   // Anthropic doesn't use "system" role in messages array
@@ -41,7 +42,7 @@ export async function anthropicChat({ model, messages, key, max_tokens = 4096 }:
     requestBody.system = systemPrompt;
   }
 
-  console.log(`[ANTHROPIC] Request: ${anthropicMessages.length} messages`);
+  logger.debug(`Anthropic request: ${anthropicMessages.length} messages`);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -55,12 +56,12 @@ export async function anthropicChat({ model, messages, key, max_tokens = 4096 }:
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`[ANTHROPIC] API error: ${response.status} - ${errorText}`);
+    logger.error(`Anthropic API error: ${response.status} - ${errorText}`);
     throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json() as any;
-  console.log(`[ANTHROPIC] Chat request successful, usage: ${JSON.stringify(data.usage || {})}`);
+  logger.debug(`Anthropic chat successful, usage: ${JSON.stringify(data.usage || {})}`);
 
   const contentBlocks = Array.isArray(data.content) ? data.content : [];
 

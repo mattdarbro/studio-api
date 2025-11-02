@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth';
+import { logger } from './logger';
 
 interface RateLimitEntry {
   count: number;
@@ -38,7 +39,7 @@ export const rateLimitMiddleware = (
     // Check if limit exceeded
     if (entry.count > REQUESTS_PER_MINUTE) {
       const resetInSeconds = Math.ceil((entry.resetTime - now) / 1000);
-      console.log(`[RATE_LIMIT] User ${userId} exceeded limit: ${entry.count}/${REQUESTS_PER_MINUTE}`);
+      logger.warn(`User ${userId} exceeded rate limit: ${entry.count}/${REQUESTS_PER_MINUTE}`);
       res.status(429).json({
         error: 'Rate limit exceeded',
         resetInSeconds
@@ -46,22 +47,24 @@ export const rateLimitMiddleware = (
       return;
     }
 
-    console.log(`[RATE_LIMIT] User ${userId}: ${entry.count}/${REQUESTS_PER_MINUTE} requests`);
-
-    // Clean up old entries periodically
-    if (Math.random() < 0.01) { // 1% chance on each request
-      const keysToDelete: string[] = [];
-      rateLimitMap.forEach((value, key) => {
-        if (now > value.resetTime + WINDOW_MS) {
-          keysToDelete.push(key);
-        }
-      });
-      keysToDelete.forEach(key => rateLimitMap.delete(key));
-    }
-
-    next();
+    logger.debug(`User ${userId}: ${entry.count}/${REQUESTS_PER_MINUTE} requests`);
   } catch (error) {
-    console.error('[RATE_LIMIT] Error:', error);
+    logger.error('Rate limit error:', error);
     res.status(500).json({ error: 'Rate limit error' });
   }
 };
+
+// Clean up old entries every 5 minutes (more efficient than random cleanup)
+setInterval(() => {
+  const now = Date.now();
+  const keysToDelete: string[] = [];
+  rateLimitMap.forEach((value, key) => {
+    if (now > value.resetTime + WINDOW_MS) {
+      keysToDelete.push(key);
+    }
+  });
+  keysToDelete.forEach(key => rateLimitMap.delete(key));
+  if (keysToDelete.length > 0) {
+    logger.debug(`Cleaned up ${keysToDelete.length} expired rate limit entries`);
+  }
+}, 5 * 60 * 1000);

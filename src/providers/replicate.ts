@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { logger } from '../logger';
 
 interface ReplicateImageParams {
   prompt: string;
@@ -23,7 +24,7 @@ interface ReplicatePrediction {
 export async function replicateCreatePrediction(params: ReplicateImageParams): Promise<ReplicatePrediction> {
   const { prompt, model, width = 1024, height = 1024, num_outputs = 1, key } = params;
 
-  console.log(`[REPLICATE] Creating prediction for model: ${model}`);
+  logger.debug(`Replicate creating prediction for model: ${model}`);
 
   // Determine if model is a version hash or model name
   const isVersionHash = model.length > 40 && !model.includes('/');
@@ -37,7 +38,7 @@ export async function replicateCreatePrediction(params: ReplicateImageParams): P
         input: { prompt, width, height, num_outputs }
       };
 
-  console.log(`[REPLICATE] Request body:`, JSON.stringify(requestBody, null, 2));
+  logger.debug(`Replicate request body: ${JSON.stringify(requestBody)}`);
 
   const response = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
@@ -51,12 +52,12 @@ export async function replicateCreatePrediction(params: ReplicateImageParams): P
 
   if (!response.ok) {
     const error = await response.text();
-    console.error('[REPLICATE] Error:', error);
+    logger.error(`Replicate error: ${error}`);
     throw new Error(`Replicate API error: ${response.status} ${error}`);
   }
 
   const prediction = await response.json() as ReplicatePrediction;
-  console.log(`[REPLICATE] Prediction created: ${prediction.id}, status: ${prediction.status}`);
+  logger.debug(`Replicate prediction created: ${prediction.id}, status: ${prediction.status}`);
 
   return prediction;
 }
@@ -87,7 +88,7 @@ export async function replicateWaitForPrediction(predictionId: string, key: stri
       return prediction;
     }
 
-    console.log(`[REPLICATE] Prediction ${predictionId} status: ${prediction.status}`);
+    logger.debug(`Replicate prediction ${predictionId} status: ${prediction.status}`);
     await new Promise(resolve => setTimeout(resolve, pollInterval));
   }
 
