@@ -34,7 +34,7 @@ providers.forEach(provider => {
 
 const app = express();
 // Use Railway's provided PORT or fall back to 3000
-const PORT = parseInt(process.env.PORT || process.env.RAILWAY_PUBLIC_PORT || '3000', 10);
+const PORT: number = parseInt(process.env.PORT || process.env.RAILWAY_PUBLIC_PORT || '3000', 10);
 console.log('[STARTUP] Will bind to port:', PORT);
 console.log('[STARTUP] Node version:', process.version);
 
