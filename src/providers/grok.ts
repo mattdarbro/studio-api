@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { logger } from '../logger';
+import { keepAliveAgent } from '../httpClient';
 
 interface ChatMessage {
   role: string;
@@ -25,7 +26,8 @@ export async function grokChat({ model, messages, key }: GrokChatRequest): Promi
     body: JSON.stringify({
       model,
       messages
-    })
+    }),
+    agent: keepAliveAgent
   });
 
   if (!response.ok) {
@@ -38,4 +40,3 @@ export async function grokChat({ model, messages, key }: GrokChatRequest): Promi
   logger.debug(`Grok chat successful, usage: ${JSON.stringify(data.usage || {})}`);
   return data;
 }
-

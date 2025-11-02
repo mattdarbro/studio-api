@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { logger } from '../logger';
+import { keepAliveAgent } from '../httpClient';
 
 interface ElevenLabsMusicParams {
   prompt: string;
@@ -31,7 +32,8 @@ export async function elevenLabsGenerateMusic(params: ElevenLabsMusicParams): Pr
       text: prompt,
       duration_seconds: duration,
       prompt_influence: 0.3
-    })
+    }),
+    agent: keepAliveAgent
   });
 
   if (!response.ok) {
@@ -72,7 +74,8 @@ export async function elevenLabsTextToSpeech(params: {
     body: JSON.stringify({
       text,
       model_id: 'eleven_monolingual_v1'
-    })
+    }),
+    agent: keepAliveAgent
   });
 
   if (!response.ok) {

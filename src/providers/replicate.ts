@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { logger } from '../logger';
+import { keepAliveAgent } from '../httpClient';
 
 interface ReplicateImageParams {
   prompt: string;
@@ -47,7 +48,8 @@ export async function replicateCreatePrediction(params: ReplicateImageParams): P
       'Content-Type': 'application/json',
       'Prefer': 'wait'
     },
-    body: JSON.stringify(requestBody)
+    body: JSON.stringify(requestBody),
+    agent: keepAliveAgent
   });
 
   if (!response.ok) {
@@ -66,7 +68,8 @@ export async function replicateGetPrediction(predictionId: string, key: string):
   const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
     headers: {
       'Authorization': `Bearer ${key}`,
-    }
+    },
+    agent: keepAliveAgent
   });
 
   if (!response.ok) {

@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { logger } from '../logger';
+import { keepAliveAgent } from '../httpClient';
 
 interface ChatMessage {
   role: string;
@@ -51,7 +52,8 @@ export async function anthropicChat({ model, messages, key, max_tokens = 4096 }:
       'x-api-key': key,
       'anthropic-version': '2023-06-01'
     },
-    body: JSON.stringify(requestBody)
+    body: JSON.stringify(requestBody),
+    agent: keepAliveAgent
   });
 
   if (!response.ok) {

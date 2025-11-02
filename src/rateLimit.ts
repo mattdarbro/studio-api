@@ -48,6 +48,8 @@ export const rateLimitMiddleware = (
     }
 
     logger.debug(`User ${userId}: ${entry.count}/${REQUESTS_PER_MINUTE} requests`);
+
+    next();
   } catch (error) {
     logger.error('Rate limit error:', error);
     res.status(500).json({ error: 'Rate limit error' });

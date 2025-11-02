@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { logger } from '../logger';
+import { keepAliveAgent } from '../httpClient';
 
 interface ChatMessage {
   role: string;
@@ -29,7 +30,8 @@ export async function openaiChat({ model, messages, key }: OpenAIChatRequest): P
     body: JSON.stringify({
       model,
       messages
-    })
+    }),
+    agent: keepAliveAgent
   });
 
   if (!response.ok) {
@@ -55,7 +57,8 @@ export async function openaiRealtimeSession({ model, key }: OpenAIRealtimeReques
     body: JSON.stringify({
       model,
       voice: 'alloy'
-    })
+    }),
+    agent: keepAliveAgent
   });
 
   if (!response.ok) {
