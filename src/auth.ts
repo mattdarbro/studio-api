@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { logger } from './logger';
+import { validateSession } from './services/validation';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -23,6 +24,7 @@ export const authMiddleware = (
   next: NextFunction
 ): void => {
   try {
+    const sessionToken = req.headers['x-session-token'] as string | undefined;
     const authHeader = req.headers.authorization;
     const appKey = req.headers['x-app-key'] as string | undefined;
     const channel = (req.headers['x-model-channel'] as string) || 'stable';
@@ -32,6 +34,27 @@ export const authMiddleware = (
     const userAnthropicKey = req.headers['x-user-anthropic-key'] as string | undefined;
     const userGrokKey = req.headers['x-user-grok-key'] as string | undefined;
 
+    // FAST PATH: Check for session token first (Map lookup - no crypto)
+    if (sessionToken) {
+      const sessionData = validateSession(sessionToken);
+
+      if (sessionData) {
+        // Session is valid - use session data
+        req.user = { id: sessionData.userId, type: sessionData.userType };
+        req.channel = sessionData.channel;
+        req.apiKeys = sessionData.apiKeys || {};
+
+        logger.debug(`Session auth: user ${sessionData.userId}, channel: ${sessionData.channel}`);
+        next();
+        return;
+      } else {
+        // Session token provided but invalid/expired
+        res.status(401).json({ error: 'Invalid or expired session token' });
+        return;
+      }
+    }
+
+    // SLOW PATH: Fall back to traditional JWT/app-key authentication
     req.channel = channel;
 
     // Store user-provided API keys separately for each service

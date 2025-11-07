@@ -8,6 +8,7 @@ import chatRouter from './routes/chat';
 import ephemeralRouter from './routes/ephemeral';
 import imagesRouter from './routes/images';
 import musicRouter from './routes/music';
+import validateRouter from './routes/validate';
 import { logger } from './logger';
 
 // Load environment variables
@@ -54,6 +55,9 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Validation endpoint (no auth required - this IS the auth step)
+app.use('/v1/validate', validateRouter);
+
 // Apply authentication and rate limiting to all routes
 app.use(authMiddleware as any);
 app.use(rateLimitMiddleware as any);
@@ -89,6 +93,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 const HOST = '0.0.0.0';
 const server = app.listen(PORT, HOST, () => {
   logger.info(`🚀 Lucid API server running on ${HOST}:${PORT}`);
+  logger.info(`🔐 Validate: http://localhost:${PORT}/v1/validate`);
   logger.info(`📚 Model catalog: http://localhost:${PORT}/v1/models`);
   logger.info(`💬 Chat: http://localhost:${PORT}/v1/chat`);
   logger.info(`⚡ Ephemeral: http://localhost:${PORT}/v1/ephemeral`);
