@@ -4,7 +4,7 @@ import { keepAliveAgent } from '../httpClient';
 
 interface ReplicateImageParams {
   prompt: string;
-  model: string;
+  model: string; // model name (e.g., black-forest-labs/flux-schnell) or version id
   width?: number;
   height?: number;
   num_outputs?: number;
@@ -22,24 +22,68 @@ interface ReplicatePrediction {
   };
 }
 
+const modelVersionCache = new Map<string, string>();
+
+async function resolveReplicateVersion(model: string, apiKey: string): Promise<string> {
+  const trimmed = model.trim();
+
+  if (!trimmed) {
+    throw new Error('Replicate model identifier is required');
+  }
+
+  const looksLikeVersion = !trimmed.includes('/') && trimmed.length > 30;
+  if (looksLikeVersion) {
+    return trimmed;
+  }
+
+  // If the catalog already stores version IDs we can skip network calls
+  if (modelVersionCache.has(trimmed)) {
+    return modelVersionCache.get(trimmed)!;
+  }
+
+  const url = `https://api.replicate.com/v1/models/${trimmed}`;
+  logger.debug(`Resolving latest version for Replicate model: ${trimmed}`);
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    agent: keepAliveAgent
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error(`Replicate model lookup error: ${response.status} ${error}`);
+    throw new Error(`Replicate model lookup error: ${response.status} ${error}`);
+  }
+
+  const data = await response.json() as any;
+  const versionId = data?.latest_version?.id;
+
+  if (!versionId) {
+    throw new Error(`Unable to determine latest version for model ${trimmed}`);
+  }
+
+  modelVersionCache.set(trimmed, versionId);
+  logger.debug(`Resolved Replicate model ${trimmed} to version ${versionId}`);
+  return versionId;
+}
+
 export async function replicateCreatePrediction(params: ReplicateImageParams): Promise<ReplicatePrediction> {
   const { prompt, model, width = 1024, height = 1024, num_outputs = 1, key } = params;
 
   logger.debug(`Replicate creating prediction for model: ${model}`);
 
-  // Determine if model is a version hash or model name
-  const isVersionHash = model.length > 40 && !model.includes('/');
-  const requestBody = isVersionHash 
-    ? {
-        version: model,
-        input: { prompt, width, height, num_outputs }
-      }
-    : {
-        model: model,
-        input: { prompt, width, height, num_outputs }
-      };
+  const version = await resolveReplicateVersion(model, key);
 
-  logger.debug(`Replicate request body: ${JSON.stringify(requestBody)}`);
+  const requestBody = {
+    version,
+    input: { prompt, width, height, num_outputs }
+  };
+
+  logger.debug(`Replicate request body prepared with version: ${version}`);
 
   const response = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
