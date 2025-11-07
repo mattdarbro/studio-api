@@ -111,6 +111,48 @@ curl http://localhost:3000/v1/ephemeral \
   -H "x-app-key: your-secret-app-key"
 ```
 
+### POST /v1/images/generate
+
+Generate an image using Replicate Flux models and return the generated URL.
+
+**Headers:**
+- `x-session-token: <session-token>` (recommended)
+- `Authorization: Bearer <jwt>` OR `x-app-key: <app-key>` (optional fallback)
+
+**Body:**
+```json
+{
+  "prompt": "A serene mountain landscape at sunrise",
+  "width": 1024,
+  "height": 1024,
+  "style": "photorealistic"
+}
+```
+
+**Style Options:** `photorealistic`, `artistic`, `abstract`, `minimalist`, `humorous`
+
+**Response:**
+```json
+{
+  "url": "https://replicate.delivery/.../out-0.png"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/v1/images/generate \
+  -H "Content-Type: application/json" \
+  -H "x-session-token: your-session-token" \
+  -d '{
+    "prompt": "Studio-quality product photo of a wireless keyboard on a marble desk",
+    "width": 1024,
+    "height": 1024,
+    "style": "photorealistic"
+  }'
+```
+
+The endpoint waits for the Replicate prediction to complete and returns the first output URL. Use `GET /v1/images/:id` if you need to poll manually.
+
 ### POST /v1/validate
 
 Create session tokens for improved authentication performance.

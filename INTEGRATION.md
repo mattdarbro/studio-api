@@ -288,6 +288,49 @@ curl -X POST https://studio-api-production-3deb.up.railway.app/v1/images \
   }'
 ```
 
+### POST /v1/images/generate
+Purpose-built endpoint for mobile apps (Arno) that returns the final URL.
+
+**Headers:**
+- `x-session-token` (recommended) or `x-app-key`/`Authorization` (fallback)
+
+**Request Body:**
+```json
+{
+  "prompt": "studio-quality product photo of a ceramic mug",
+  "width": 1024,
+  "height": 1024,
+  "style": "photorealistic"
+}
+```
+
+**Style Enum:** `photorealistic`, `artistic`, `abstract`, `minimalist`, `humorous`
+
+**Response:**
+```json
+{
+  "url": "https://replicate.delivery/.../out-0.png"
+}
+```
+
+**Behavior:**
+- Waits for Replicate prediction to finish (no polling needed)
+- Returns 500 if generation fails, including Replicate error message
+- Uses the default image model for the session's channel (typically `image.default`)
+
+**Example:**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/images/generate \
+  -H "Content-Type: application/json" \
+  -H "x-session-token: YOUR_SESSION_TOKEN" \
+  -d '{
+    "prompt": "Bold comic-book illustration of a superhero corgi",
+    "width": 1024,
+    "height": 1024,
+    "style": "humorous"
+  }'
+```
+
 ### GET /v1/images/:id
 Check status of an image generation
 
