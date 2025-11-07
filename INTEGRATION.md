@@ -33,6 +33,58 @@ curl -H "x-app-key: YOUR_APP_KEY" https://studio-api-production-3deb.up.railway.
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" https://studio-api-production-3deb.up.railway.app/v1/models
 ```
 
+## Session-Based Authentication (Recommended)
+
+For better performance and user experience, use **session tokens** instead of sending JWT/app-key on every request.
+
+### How It Works
+
+1. **Validate once**: Exchange your credentials for a session token
+2. **Use everywhere**: Send the session token with all API calls
+3. **Refresh**: Extend the session before it expires (15 minutes)
+
+### Quick Start
+
+**Step 1: Get a session token**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/validate \
+  -H "x-app-key: YOUR_APP_KEY" \
+  -H "x-model-channel: stable"
+
+# Response:
+# {
+#   "sessionToken": "...",
+#   "expiresIn": 900,
+#   "userId": "app",
+#   "channel": "stable"
+# }
+```
+
+**Step 2: Use the session token**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/chat \
+  -H "Content-Type: application/json" \
+  -H "x-session-token: YOUR_SESSION_TOKEN" \
+  -d '{"kind":"chat.default","messages":[{"role":"user","content":"Hello!"}]}'
+```
+
+**Step 3: Refresh before expiration (optional)**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/validate/refresh \
+  -H "x-session-token: YOUR_SESSION_TOKEN"
+```
+
+### Benefits
+
+- **Performance**: Map lookup vs expensive JWT verification on every request
+- **Security**: Short-lived tokens (15 minutes) reduce exposure
+- **Simplicity**: One token instead of multiple headers
+- **User Keys**: Store user-provided API keys in the session
+
+### Complete Guide
+
+For detailed implementation patterns, error handling, and migration steps, see [VALIDATION.md](./VALIDATION.md).
+
 ## API Keys
 
 ### Server-Managed Keys
@@ -355,15 +407,28 @@ All errors return JSON with an `error` field:
 
 When migrating an app to use Studio API:
 
+### Basic Migration
 - [ ] Replace direct OpenAI API calls with Studio API endpoints
 - [ ] Update base URL to `https://studio-api-production-3deb.up.railway.app`
-- [ ] Add `x-app-key` header to all requests
-- [ ] Remove OpenAI API key from client-side code (if any)
 - [ ] Update chat endpoint from `/v1/chat/completions` to `/v1/chat`
 - [ ] Update model selection to use `kind` parameter instead of `model`
-- [ ] Add model channel selection if needed (`x-model-channel` header)
+- [ ] Remove OpenAI API key from client-side code (if any)
 - [ ] Test with health check endpoint first
 - [ ] Handle new error response format
+
+### Authentication Options
+
+**Option A: Direct Authentication (Simple)**
+- [ ] Add `x-app-key` or `Authorization: Bearer` header to all requests
+- [ ] Add model channel selection if needed (`x-model-channel` header)
+
+**Option B: Session Tokens (Recommended for Production)**
+- [ ] Implement session token creation at app startup/login
+- [ ] Store session token securely
+- [ ] Replace `x-app-key`/JWT with `x-session-token` in API calls
+- [ ] Implement session refresh strategy (proactive or reactive)
+- [ ] Handle 401 errors by getting new session token
+- [ ] See [VALIDATION.md](./VALIDATION.md) for complete migration guide
 
 ## Example Migration
 
@@ -382,7 +447,7 @@ const response = await fetch('https://api.openai.com/v1/chat/completions', {
 });
 ```
 
-### After (Studio API):
+### After (Studio API - Direct Auth):
 ```javascript
 const response = await fetch('https://studio-api-production-3deb.up.railway.app/v1/chat', {
   method: 'POST',
@@ -400,6 +465,34 @@ const response = await fetch('https://studio-api-production-3deb.up.railway.app/
   })
 });
 ```
+
+### After (Studio API - Session Token, Recommended):
+```javascript
+// Step 1: Get session token (once at startup)
+const validateResponse = await fetch('https://studio-api-production-3deb.up.railway.app/v1/validate', {
+  method: 'POST',
+  headers: {
+    'x-app-key': APP_KEY,
+    'x-model-channel': 'stable',
+  }
+});
+const { sessionToken } = await validateResponse.json();
+
+// Step 2: Use session token for all requests
+const response = await fetch('https://studio-api-production-3deb.up.railway.app/v1/chat', {
+  method: 'POST',
+  headers: {
+    'x-session-token': sessionToken,  // Faster than JWT verification
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    kind: 'chat.default',
+    messages: [{ role: 'user', content: 'Hello!' }]
+  })
+});
+```
+
+**Note:** For complete session management patterns and best practices, see [VALIDATION.md](./VALIDATION.md).
 
 ## Environment Variables Needed
 

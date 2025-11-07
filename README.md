@@ -111,6 +111,42 @@ curl http://localhost:3000/v1/ephemeral \
   -H "x-app-key: your-secret-app-key"
 ```
 
+### POST /v1/validate
+
+Create session tokens for improved authentication performance.
+
+**Headers:**
+- `Authorization: Bearer <jwt>` OR `x-app-key: <app-key>` (required)
+- `x-model-channel: stable|beta|fast` (optional, defaults to `stable`)
+- `x-user-openai-key: <user-key>` (optional)
+- `x-user-anthropic-key: <user-key>` (optional)
+- `x-user-grok-key: <user-key>` (optional)
+
+**Response:**
+```json
+{
+  "sessionToken": "base64url-encoded-token",
+  "expiresIn": 900,
+  "userId": "user-id",
+  "userType": "jwt" | "app-key",
+  "channel": "stable"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/v1/validate \
+  -H "x-app-key: your-secret-app-key" \
+  -H "x-model-channel: stable"
+```
+
+**Related Endpoints:**
+- `POST /v1/validate/refresh` - Extend session expiration
+- `POST /v1/validate/revoke` - Revoke session token
+- `GET /v1/validate/stats` - Get session statistics (requires app key)
+
+**Note:** Session tokens expire after 15 minutes. Use `x-session-token` header for subsequent API calls. See [VALIDATION.md](./VALIDATION.md) for complete documentation.
+
 ### GET /health
 
 Health check endpoint (no authentication required).
@@ -121,6 +157,16 @@ curl http://localhost:3000/health
 ```
 
 ## Authentication
+
+### Recommended: Session Tokens
+
+For production applications, use session tokens for better performance:
+
+1. Exchange credentials for a session token using `/v1/validate`
+2. Use the session token for all subsequent requests
+3. Sessions last 15 minutes and can be refreshed
+
+See [VALIDATION.md](./VALIDATION.md) for complete implementation guide.
 
 ### Option 1: App Key
 
