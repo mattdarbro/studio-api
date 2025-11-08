@@ -12,6 +12,7 @@ const router = Router();
  * Headers:
  * - Authorization: Bearer <jwt_token> (JWT authentication)
  * - x-app-key: <app_key> (App key authentication)
+ * - x-app-id: <app_id> (optional, for tracking which app is making requests)
  * - x-model-channel: <channel> (optional, defaults to 'stable')
  * - x-user-openai-key: <key> (optional)
  * - x-user-replicate-key: <key> (optional)
@@ -31,6 +32,7 @@ router.post('/', (req: Request, res: Response) => {
   try {
     const authHeader = req.headers.authorization;
     const appKey = req.headers['x-app-key'] as string | undefined;
+    const appId = req.headers['x-app-id'] as string | undefined;
     const channel = (req.headers['x-model-channel'] as string) || 'stable';
 
     // Extract user-provided API keys
@@ -65,9 +67,9 @@ router.post('/', (req: Request, res: Response) => {
       }
 
       // Create session for app key authentication
-      const sessionToken = createSession('app', 'app-key', channel, Object.keys(apiKeys).length > 0 ? apiKeys : undefined);
+      const sessionToken = createSession('app', 'app-key', channel, Object.keys(apiKeys).length > 0 ? apiKeys : undefined, appId);
 
-      logger.info(`Session created for app-key authentication, channel: ${channel}`);
+      logger.info(`Session created for app-key authentication, appId: ${appId || 'none'}, channel: ${channel}`);
 
       res.json({
         sessionToken,
@@ -94,9 +96,9 @@ router.post('/', (req: Request, res: Response) => {
         const userId = decoded.id || decoded.sub || 'unknown';
 
         // Create session for JWT authentication
-        const sessionToken = createSession(userId, 'jwt', channel, Object.keys(apiKeys).length > 0 ? apiKeys : undefined);
+        const sessionToken = createSession(userId, 'jwt', channel, Object.keys(apiKeys).length > 0 ? apiKeys : undefined, appId);
 
-        logger.info(`Session created for user: ${userId}, channel: ${channel}`);
+        logger.info(`Session created for user: ${userId}, appId: ${appId || 'none'}, channel: ${channel}`);
 
         res.json({
           sessionToken,

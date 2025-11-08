@@ -5,6 +5,7 @@ export interface SessionData {
   userId: string;
   userType: 'jwt' | 'app-key';
   channel: string;
+  appId?: string;
   apiKeys?: {
     openai?: string;
     replicate?: string;
@@ -37,7 +38,8 @@ export function createSession(
   userId: string,
   userType: 'jwt' | 'app-key',
   channel: string = 'stable',
-  apiKeys?: SessionData['apiKeys']
+  apiKeys?: SessionData['apiKeys'],
+  appId?: string
 ): string {
   const sessionToken = generateSessionToken();
   const now = Date.now();
@@ -46,6 +48,7 @@ export function createSession(
     userId,
     userType,
     channel,
+    appId,
     apiKeys,
     createdAt: now,
     expiresAt: now + SESSION_DURATION_MS,
@@ -53,7 +56,7 @@ export function createSession(
 
   sessionStore.set(sessionToken, sessionData);
 
-  logger.debug(`Created session for user ${userId}, type: ${userType}, expires in ${SESSION_DURATION_MS / 1000}s`);
+  logger.debug(`Created session for user ${userId}, type: ${userType}, appId: ${appId || 'none'}, expires in ${SESSION_DURATION_MS / 1000}s`);
 
   return sessionToken;
 }
