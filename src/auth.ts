@@ -9,6 +9,7 @@ export interface AuthenticatedRequest extends Request {
     [key: string]: any;
   };
   channel: string;
+  appId?: string;
   apiKeys?: {
     openai?: string;
     replicate?: string;
@@ -27,6 +28,7 @@ export const authMiddleware = (
     const sessionToken = req.headers['x-session-token'] as string | undefined;
     const authHeader = req.headers.authorization;
     const appKey = req.headers['x-app-key'] as string | undefined;
+    const appId = req.headers['x-app-id'] as string | undefined;
     const channel = (req.headers['x-model-channel'] as string) || 'stable';
     const userOpenAIKey = req.headers['x-user-openai-key'] as string | undefined;
     const userReplicateKey = req.headers['x-user-replicate-key'] as string | undefined;
@@ -42,9 +44,10 @@ export const authMiddleware = (
         // Session is valid - use session data
         req.user = { id: sessionData.userId, type: sessionData.userType };
         req.channel = sessionData.channel;
+        req.appId = sessionData.appId;
         req.apiKeys = sessionData.apiKeys || {};
 
-        logger.debug(`Session auth: user ${sessionData.userId}, channel: ${sessionData.channel}`);
+        logger.debug(`Session auth: user ${sessionData.userId}, appId: ${sessionData.appId || 'none'}, channel: ${sessionData.channel}`);
         next();
         return;
       } else {
@@ -56,6 +59,7 @@ export const authMiddleware = (
 
     // SLOW PATH: Fall back to traditional JWT/app-key authentication
     req.channel = channel;
+    req.appId = appId;
 
     // Store user-provided API keys separately for each service
     req.apiKeys = {};
@@ -85,7 +89,7 @@ export const authMiddleware = (
 
       if (appKey === validAppKey) {
         req.user = { id: 'app', type: 'app-key' };
-        logger.debug(`Authenticated via app-key, channel: ${channel}`);
+        logger.debug(`Authenticated via app-key, appId: ${appId || 'none'}, channel: ${channel}`);
         next();
         return;
       } else {
@@ -107,7 +111,7 @@ export const authMiddleware = (
       try {
         const decoded = jwt.verify(token, jwtSecret) as any;
         req.user = decoded;
-        logger.debug(`Authenticated user: ${decoded.id || 'unknown'}, channel: ${channel}`);
+        logger.debug(`Authenticated user: ${decoded.id || 'unknown'}, appId: ${appId || 'none'}, channel: ${channel}`);
         next();
         return;
       } catch (err) {
