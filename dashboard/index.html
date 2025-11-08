@@ -390,6 +390,79 @@
       margin-top: 4px;
     }
 
+    .integration-guide {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+    }
+
+    .integration-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .integration-header h3 {
+      font-size: 16px;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .integration-toggle {
+      font-size: 24px;
+      color: var(--text-secondary);
+      transition: transform 0.3s;
+    }
+
+    .integration-toggle.open {
+      transform: rotate(180deg);
+    }
+
+    .integration-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .integration-content.open {
+      max-height: 2000px;
+      transition: max-height 0.5s ease-in;
+    }
+
+    .integration-content pre {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+
+    .integration-content code {
+      color: var(--success);
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+    }
+
+    .integration-content p {
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+
+    .integration-content ul {
+      margin: 12px 0 12px 20px;
+      line-height: 1.8;
+    }
+
+    .integration-content strong {
+      color: var(--accent);
+    }
+
     footer {
       text-align: center;
       padding: 40px 20px;
@@ -458,6 +531,83 @@
       <p class="help-text">Enter your APP_KEY for authentication</p>
     </div>
 
+    <!-- Integration Guide -->
+    <div class="integration-guide">
+      <div class="integration-header" onclick="toggleIntegration()">
+        <h3>📚 How to Integrate with Your Legacy Apps</h3>
+        <span class="integration-toggle" id="integrationToggle">▼</span>
+      </div>
+      <div class="integration-content" id="integrationContent">
+        <p style="margin-top: 16px;">
+          Want to add analytics tracking to your existing applications? Follow these steps to route your LLM requests through Studio API and start tracking usage.
+        </p>
+
+        <p><strong>Step 1: Update Your API Calls</strong></p>
+        <p>Replace direct OpenAI/Anthropic calls with Studio API:</p>
+        <pre><code>// Before (Direct OpenAI):
+const response = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello' }]
+});
+
+// After (Through Studio API):
+const response = await fetch('YOUR_API_URL/v1/chat', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-app-key': 'YOUR_APP_KEY',
+    'x-app-id': 'my-legacy-app',  // ← Track per-app usage
+    'x-user-id': userId,           // ← Optional: track per-user
+  },
+  body: JSON.stringify({
+    kind: 'chat.default',
+    messages: [{ role: 'user', content: 'Hello' }]
+  })
+});</code></pre>
+
+        <p><strong>Step 2: Add Environment Variables</strong></p>
+        <p>Update your app's <code>.env</code> file:</p>
+        <pre><code>STUDIO_API_URL=https://your-api.railway.app
+STUDIO_API_KEY=your-app-key-here
+APP_ID=my-legacy-app  # Identifies your app in analytics</code></pre>
+
+        <p><strong>Step 3: Deploy and Track</strong></p>
+        <ul>
+          <li>Deploy your updated app</li>
+          <li>Make some test requests</li>
+          <li>Come back to this dashboard and ask: <em>"How much did my-legacy-app spend today?"</em></li>
+        </ul>
+
+        <p><strong>Multiple Apps?</strong></p>
+        <p>Track different apps separately using unique <code>x-app-id</code> headers:</p>
+        <pre><code>// Mobile app
+headers: { 'x-app-id': 'mobile-ios' }
+
+// Web dashboard
+headers: { 'x-app-id': 'web-dashboard' }
+
+// Background jobs
+headers: { 'x-app-id': 'background-worker' }</code></pre>
+
+        <p><strong>Example Analytics Questions:</strong></p>
+        <ul>
+          <li>"How much did mobile-ios spend vs web-dashboard this week?"</li>
+          <li>"Show me all failed requests for my-legacy-app"</li>
+          <li>"What's the average response time by app?"</li>
+        </ul>
+
+        <p>
+          <strong>📖 Full Documentation:</strong> Check the
+          <a href="https://github.com/mattdarbro/studio-api/blob/main/INTEGRATION.md#integrating-analytics-into-legacy-apps"
+             target="_blank"
+             style="color: var(--accent); text-decoration: none;">
+            INTEGRATION.md guide
+          </a>
+          for complete migration patterns and troubleshooting.
+        </p>
+      </div>
+    </div>
+
     <!-- Chat Interface -->
     <div class="chat-container">
       <div class="examples">
@@ -522,6 +672,14 @@
     document.getElementById('appKey').addEventListener('change', (e) => {
       localStorage.setItem('lucid_app_key', e.target.value);
     });
+
+    function toggleIntegration() {
+      const content = document.getElementById('integrationContent');
+      const toggle = document.getElementById('integrationToggle');
+
+      content.classList.toggle('open');
+      toggle.classList.toggle('open');
+    }
 
     function setQuestion(text) {
       document.getElementById('question').value = text;
