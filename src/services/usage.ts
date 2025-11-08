@@ -1,4 +1,5 @@
 import { logger } from '../logger';
+import { insertUsageLog, insertUsageLogsBatch, queryUsageLogs as dbQueryUsageLogs, getTotalLogCount } from '../db/database';
 
 /**
  * Usage log entry for tracking API usage and costs
@@ -20,23 +21,38 @@ export interface UsageLog {
 }
 
 /**
- * In-memory storage for usage logs
- * Keep last 10,000 entries to prevent memory bloat
+ * In-memory buffer for pending writes to database
+ * Logs accumulate here and are flushed periodically
  */
-const usageLogs: UsageLog[] = [];
-const MAX_LOGS = 10000;
+const pendingLogs: UsageLog[] = [];
+const BATCH_SIZE = 100; // Flush to DB after 100 logs
+const FLUSH_INTERVAL = 10000; // Or flush every 10 seconds
+
+/**
+ * Flush pending logs to database
+ */
+function flushPendingLogs(): void {
+  if (pendingLogs.length === 0) return;
+
+  try {
+    insertUsageLogsBatch([...pendingLogs]);
+    logger.debug(`Flushed ${pendingLogs.length} logs to database`);
+    pendingLogs.length = 0; // Clear buffer
+  } catch (error) {
+    logger.error('Failed to flush logs to database:', error);
+  }
+}
 
 /**
  * Log a usage event
  */
 export function logUsage(log: UsageLog): void {
-  usageLogs.push(log);
+  // Add to pending buffer
+  pendingLogs.push(log);
 
-  // Trim old logs if we exceed max
-  if (usageLogs.length > MAX_LOGS) {
-    const toRemove = usageLogs.length - MAX_LOGS;
-    usageLogs.splice(0, toRemove);
-    logger.debug(`Trimmed ${toRemove} old usage logs`);
+  // Flush if batch size reached
+  if (pendingLogs.length >= BATCH_SIZE) {
+    flushPendingLogs();
   }
 
   // Log to console for debugging (can be disabled in production)
@@ -52,10 +68,20 @@ export function logUsage(log: UsageLog): void {
 }
 
 /**
- * Get all usage logs (for debugging)
+ * Set up periodic flush timer
+ */
+setInterval(() => {
+  if (pendingLogs.length > 0) {
+    logger.debug('Periodic flush of pending logs');
+    flushPendingLogs();
+  }
+}, FLUSH_INTERVAL);
+
+/**
+ * Get all usage logs (from database)
  */
 export function getAllLogs(): UsageLog[] {
-  return [...usageLogs]; // Return copy to prevent external modification
+  return dbQueryUsageLogs({ limit: 10000 });
 }
 
 /**
@@ -72,43 +98,14 @@ export interface UsageQueryFilters {
 }
 
 export function queryUsage(filters: UsageQueryFilters = {}): UsageLog[] {
-  let results = [...usageLogs];
+  // Convert Date objects to ISO strings for database query
+  const dbFilters: any = {
+    ...filters,
+    startDate: filters.startDate?.toISOString(),
+    endDate: filters.endDate?.toISOString(),
+  };
 
-  // Filter by appId
-  if (filters.appId) {
-    results = results.filter((log) => log.appId === filters.appId);
-  }
-
-  // Filter by userId
-  if (filters.userId) {
-    results = results.filter((log) => log.userId === filters.userId);
-  }
-
-  // Filter by provider
-  if (filters.provider) {
-    results = results.filter((log) => log.provider === filters.provider);
-  }
-
-  // Filter by endpoint
-  if (filters.endpoint) {
-    results = results.filter((log) => log.endpoint === filters.endpoint);
-  }
-
-  // Filter by date range
-  if (filters.startDate) {
-    results = results.filter((log) => log.timestamp >= filters.startDate!);
-  }
-
-  if (filters.endDate) {
-    results = results.filter((log) => log.timestamp <= filters.endDate!);
-  }
-
-  // Apply limit
-  if (filters.limit && filters.limit > 0) {
-    results = results.slice(-filters.limit); // Get last N entries
-  }
-
-  return results;
+  return dbQueryUsageLogs(dbFilters);
 }
 
 /**
@@ -191,17 +188,26 @@ export function calculateStats(logs: UsageLog[]): UsageStats {
  * Clear all usage logs (use with caution!)
  */
 export function clearLogs(): number {
-  const count = usageLogs.length;
-  usageLogs.length = 0;
-  logger.info(`Cleared ${count} usage logs`);
-  return count;
+  // Clear pending logs
+  pendingLogs.length = 0;
+
+  // This would need to be implemented in database.ts to clear DB
+  logger.warn('clearLogs() called - this only clears pending buffer. Use database.clearAllLogs() to clear database');
+  return 0;
 }
 
 /**
  * Get total log count
  */
 export function getLogCount(): number {
-  return usageLogs.length;
+  return getTotalLogCount();
 }
 
-logger.info('Usage tracking service initialized');
+/**
+ * Flush any pending logs (for graceful shutdown)
+ */
+export function flushPending(): void {
+  flushPendingLogs();
+}
+
+logger.info('Usage tracking service initialized (database-backed)');

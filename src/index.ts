@@ -12,6 +12,8 @@ import musicRouter from './routes/music';
 import validateRouter from './routes/validate';
 import analyticsRouter from './routes/analytics';
 import { logger } from './logger';
+import { flushPending } from './services/usage';
+import { closeDatabase } from './db/database';
 
 // Load environment variables
 dotenv.config();
@@ -107,6 +109,7 @@ const server = app.listen(PORT, HOST, () => {
   logger.info(`🎨 Images: http://localhost:${PORT}/v1/images`);
   logger.info(`🎵 Music: http://localhost:${PORT}/v1/music`);
   logger.info(`📊 Analytics: http://localhost:${PORT}/v1/analytics/usage`);
+  logger.info(`🤖 AI Chat: http://localhost:${PORT}/v1/analytics/chat`);
   logger.info(`❤️  Health: http://localhost:${PORT}/health`);
 });
 
@@ -128,7 +131,10 @@ server.on('close', () => {
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, closing server...');
   server.close(() => {
-    logger.info('Server closed');
+    logger.info('Server closed, flushing pending logs...');
+    flushPending();
+    closeDatabase();
+    logger.info('Cleanup complete');
     process.exit(0);
   });
 });
@@ -136,7 +142,10 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   logger.info('SIGINT received, closing server...');
   server.close(() => {
-    logger.info('Server closed');
+    logger.info('Server closed, flushing pending logs...');
+    flushPending();
+    closeDatabase();
+    logger.info('Cleanup complete');
     process.exit(0);
   });
 });
