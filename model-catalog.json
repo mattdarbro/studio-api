@@ -41,9 +41,25 @@
         "provider": "replicate",
         "model": "black-forest-labs/flux-pro"
       },
+      "voice.default": {
+        "provider": "elevenlabs",
+        "model": "eleven_turbo_v2_5"
+      },
+      "voice.flash": {
+        "provider": "elevenlabs",
+        "model": "eleven_flash_v2_5"
+      },
+      "voice.turbo": {
+        "provider": "elevenlabs",
+        "model": "eleven_turbo_v2_5"
+      },
+      "voice.multilingual": {
+        "provider": "elevenlabs",
+        "model": "eleven_multilingual_v2"
+      },
       "music.default": {
         "provider": "elevenlabs",
-        "model": "eleven_music_generation_v1"
+        "model": "eleven_music"
       }
     },
     "beta": {
@@ -74,6 +90,26 @@
       "image.default": {
         "provider": "replicate",
         "model": "black-forest-labs/flux-dev"
+      },
+      "voice.default": {
+        "provider": "elevenlabs",
+        "model": "eleven_turbo_v2_5"
+      },
+      "voice.flash": {
+        "provider": "elevenlabs",
+        "model": "eleven_flash_v2_5"
+      },
+      "voice.turbo": {
+        "provider": "elevenlabs",
+        "model": "eleven_turbo_v2_5"
+      },
+      "voice.multilingual": {
+        "provider": "elevenlabs",
+        "model": "eleven_multilingual_v2"
+      },
+      "music.default": {
+        "provider": "elevenlabs",
+        "model": "eleven_music"
       }
     },
     "fast": {
@@ -92,6 +128,26 @@
       "image.default": {
         "provider": "replicate",
         "model": "black-forest-labs/flux-schnell"
+      },
+      "voice.default": {
+        "provider": "elevenlabs",
+        "model": "eleven_flash_v2_5"
+      },
+      "voice.flash": {
+        "provider": "elevenlabs",
+        "model": "eleven_flash_v2_5"
+      },
+      "voice.turbo": {
+        "provider": "elevenlabs",
+        "model": "eleven_turbo_v2_5"
+      },
+      "voice.multilingual": {
+        "provider": "elevenlabs",
+        "model": "eleven_multilingual_v2"
+      },
+      "music.default": {
+        "provider": "elevenlabs",
+        "model": "eleven_music"
       }
     }
   },
