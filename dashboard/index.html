@@ -429,6 +429,133 @@
         font-size: 16px; /* Prevents zoom on focus */
       }
     }
+
+    /* Documentation Section */
+    .docs-section {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+    }
+
+    .docs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .docs-header h2 {
+      font-size: clamp(18px, 4vw, 24px);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .toggle-icon {
+      font-size: 24px;
+      color: var(--text-secondary);
+      transition: transform 0.3s;
+    }
+
+    .toggle-icon.open {
+      transform: rotate(180deg);
+    }
+
+    .docs-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .docs-content.open {
+      max-height: 5000px;
+      transition: max-height 0.5s ease-in;
+    }
+
+    .docs-inner {
+      padding-top: 20px;
+    }
+
+    .docs-section h3 {
+      font-size: 18px;
+      color: var(--text-primary);
+      margin: 24px 0 12px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .docs-section h4 {
+      font-size: 16px;
+      color: var(--accent);
+      margin: 16px 0 8px 0;
+    }
+
+    .docs-section p {
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      line-height: 1.8;
+    }
+
+    .docs-section ul {
+      list-style: none;
+      margin: 12px 0;
+      padding: 0;
+    }
+
+    .docs-section li {
+      color: var(--text-secondary);
+      margin: 8px 0;
+      padding-left: 24px;
+      position: relative;
+    }
+
+    .docs-section li:before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    .code-block {
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .code-block code {
+      color: #10b981;
+      white-space: pre;
+    }
+
+    .code-comment {
+      color: var(--text-secondary);
+    }
+
+    .highlight {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .benefit-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+
+    .benefit-card h4 {
+      color: var(--success);
+      margin-top: 0;
+    }
   </style>
 </head>
 <body>
@@ -496,6 +623,163 @@
 
       <div class="result" id="result">
         <!-- Results will be inserted here -->
+      </div>
+    </div>
+
+    <!-- Documentation Section -->
+    <div class="docs-section">
+      <div class="docs-header" onclick="toggleDocs()">
+        <h2>How to Adopt Studio API in Your Apps</h2>
+        <span class="toggle-icon" id="docsToggle">▼</span>
+      </div>
+      <div class="docs-content" id="docsContent">
+        <div class="docs-inner">
+          <p>
+            Studio API is a centralized gateway that simplifies LLM integration across all your apps.
+            Instead of managing multiple API keys and providers in each app, authenticate once and
+            access OpenAI, Anthropic, Grok, Replicate, and ElevenLabs through a single endpoint.
+          </p>
+
+          <h3>Quick Start</h3>
+
+          <h4>1. Authentication</h4>
+          <p>Studio API supports two authentication methods:</p>
+
+          <div class="code-block"><code><span class="code-comment">// Method 1: JWT Token (Recommended for production)</span>
+let request = URLRequest(url: url)
+request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
+
+<span class="code-comment">// Method 2: App Key (Simple, for testing)</span>
+let request = URLRequest(url: url)
+request.setValue(appKey, forHTTPHeaderField: "x-app-key")</code></div>
+
+          <h4>2. Add App Tracking (Important!)</h4>
+          <p>Add the <span class="highlight">x-app-id</span> header to track usage per app:</p>
+
+          <div class="code-block"><code><span class="code-comment">// Add this to ALL your API requests</span>
+request.setValue("arno-ios", forHTTPHeaderField: "x-app-id")
+<span class="code-comment">// or</span>
+request.setValue("studio-mobile", forHTTPHeaderField: "x-app-id")</code></div>
+
+          <p>This enables per-app analytics in this dashboard!</p>
+
+          <h3>Available Endpoints</h3>
+
+          <h4>Chat Completions</h4>
+          <p>Works with OpenAI, Anthropic, and Grok models:</p>
+
+          <div class="code-block"><code>POST https://your-api.railway.app/v1/chat/completions
+
+{
+  "model": "gpt-5",
+  "messages": [
+    { "role": "user", "content": "Hello!" }
+  ]
+}</code></div>
+
+          <h4>Image Generation</h4>
+          <p>Access DALL-E and Flux models:</p>
+
+          <div class="code-block"><code>POST https://your-api.railway.app/v1/images/generations
+
+{
+  "model": "dall-e-3",
+  "prompt": "A futuristic city",
+  "size": "1024x1024"
+}</code></div>
+
+          <h4>Music Generation</h4>
+          <p>Generate music with ElevenLabs:</p>
+
+          <div class="code-block"><code>POST https://your-api.railway.app/v1/music/create
+
+{
+  "text": "Epic orchestral music",
+  "duration": 30
+}</code></div>
+
+          <h3>Complete Swift Example</h3>
+
+          <div class="code-block"><code><span class="code-comment">// NetworkManager.swift</span>
+import Foundation
+
+class StudioAPIClient {
+    let baseURL = "https://your-api.railway.app"
+    let appKey = "your-app-key"
+    let appId = "arno-ios" <span class="code-comment">// Your app identifier</span>
+
+    func chatCompletion(messages: [[String: String]]) async throws -> Data {
+        let url = URL(string: "\(baseURL)/v1/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(appKey, forHTTPHeaderField: "x-app-key")
+        request.setValue(appId, forHTTPHeaderField: "x-app-id") <span class="code-comment">// Track usage!</span>
+
+        let body: [String: Any] = [
+            "model": "gpt-5",
+            "messages": messages
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return data
+    }
+}</code></div>
+
+          <h3>Why Use Studio API?</h3>
+
+          <div class="benefit-card">
+            <h4>Centralized Management</h4>
+            <p>
+              Update API keys once on the server instead of pushing app updates.
+              Add new providers without changing client code.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <h4>Cost Tracking & Analytics</h4>
+            <p>
+              Track exactly how much each app spends on each provider.
+              Query usage with natural language in this dashboard.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <h4>Unified Interface</h4>
+            <p>
+              One API for OpenAI, Anthropic, Grok, Replicate, and ElevenLabs.
+              Switch providers without changing client code.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <h4>Security</h4>
+            <p>
+              API keys never stored in mobile apps.
+              Revoke access instantly without app updates.
+            </p>
+          </div>
+
+          <h3>Migration Checklist</h3>
+
+          <ul>
+            <li>Replace direct OpenAI/Anthropic SDK calls with Studio API endpoints</li>
+            <li>Add authentication (x-app-key or JWT token)</li>
+            <li>Add x-app-id header to all requests for tracking</li>
+            <li>Update base URL to your Railway deployment</li>
+            <li>Test with a few requests</li>
+            <li>Monitor usage in this dashboard</li>
+            <li>Remove provider SDKs from your app (optional)</li>
+          </ul>
+
+          <h3>Need Help?</h3>
+          <p>
+            Questions about integration? Check the <a href="https://your-api.railway.app/v1/models"
+            target="_blank" style="color: var(--accent);">model catalog</a> for all available models,
+            or query this analytics dashboard to see example API usage patterns.
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -719,6 +1003,20 @@
         askQuestion();
       }
     });
+
+    // Toggle documentation section
+    function toggleDocs() {
+      const content = document.getElementById('docsContent');
+      const toggle = document.getElementById('docsToggle');
+
+      if (content.classList.contains('open')) {
+        content.classList.remove('open');
+        toggle.classList.remove('open');
+      } else {
+        content.classList.add('open');
+        toggle.classList.add('open');
+      }
+    }
   </script>
 </body>
 </html>
