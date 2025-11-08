@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lucid Analytics Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-secondary: #1a1a1a;
+      --bg-tertiary: #2a2a2a;
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0a0;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --success: #10b981;
+      --error: #ef4444;
+      --border: #3a3a3a;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: clamp(24px, 5vw, 36px);
+      font-weight: 700;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: clamp(14px, 3vw, 16px);
+    }
+
+    .chat-container {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .examples {
+      margin-bottom: 20px;
+    }
+
+    .examples h3 {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .example-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .example-btn {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .example-btn:active {
+      transform: scale(0.95);
+    }
+
+    .example-btn:hover {
+      background: var(--bg-primary);
+      border-color: var(--accent);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    textarea {
+      flex: 1;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 16px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 60px;
+      max-height: 200px;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    textarea::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      min-width: 120px;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: var(--text-secondary);
+    }
+
+    .loading.active {
+      display: block;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .result {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .result.active {
+      display: block;
+    }
+
+    .sql-query {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .sql-query h3 {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .sql-code {
+      background: #000;
+      color: #10b981;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .explanation {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .explanation h3 {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .explanation p {
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .results-table {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .results-header h3 {
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .export-btn {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .export-btn:hover {
+      background: var(--bg-primary);
+      border-color: var(--accent);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow-x: auto;
+      display: block;
+    }
+
+    thead {
+      background: var(--bg-tertiary);
+    }
+
+    th {
+      padding: 12px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--error);
+      border-radius: 12px;
+      padding: 16px;
+      color: var(--error);
+      margin-top: 20px;
+    }
+
+    .error h3 {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .config-section {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+    }
+
+    .config-section h3 {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .config-input {
+      width: 100%;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 14px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      margin-bottom: 8px;
+    }
+
+    .config-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 12px;
+      }
+
+      .chat-container {
+        padding: 16px;
+      }
+
+      .input-group {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      table {
+        font-size: 12px;
+      }
+
+      th, td {
+        padding: 8px;
+      }
+    }
+
+    /* iOS Safari specific fixes */
+    @supports (-webkit-touch-callout: none) {
+      textarea {
+        font-size: 16px; /* Prevents zoom on focus */
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Lucid Analytics</h1>
+    <p class="subtitle">AI-powered analytics for your API usage</p>
+  </header>
+
+  <div class="container">
+    <!-- Configuration Section -->
+    <div class="config-section">
+      <h3>Configuration</h3>
+      <input
+        type="text"
+        id="apiUrl"
+        class="config-input"
+        placeholder="https://your-api.railway.app"
+        value="">
+      <p class="help-text">Enter your Studio API URL (deployed on Railway)</p>
+
+      <input
+        type="password"
+        id="appKey"
+        class="config-input"
+        placeholder="Your APP_KEY"
+        value="">
+      <p class="help-text">Enter your APP_KEY for authentication</p>
+    </div>
+
+    <!-- Chat Interface -->
+    <div class="chat-container">
+      <div class="examples">
+        <h3>Example Questions</h3>
+        <div class="example-buttons">
+          <button class="example-btn" onclick="setQuestion('How much did arno-ios spend last week?')">
+            arno-ios spending last week
+          </button>
+          <button class="example-btn" onclick="setQuestion('Which app used the most OpenAI requests yesterday?')">
+            Most OpenAI usage yesterday
+          </button>
+          <button class="example-btn" onclick="setQuestion('Show me total costs by provider')">
+            Costs by provider
+          </button>
+          <button class="example-btn" onclick="setQuestion('What are the top 5 most expensive models?')">
+            Top 5 expensive models
+          </button>
+          <button class="example-btn" onclick="setQuestion('Show me all failed requests in the last 24 hours')">
+            Failed requests (24h)
+          </button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <textarea
+          id="question"
+          placeholder="Ask a question about your API usage... (e.g., 'How much did my apps spend on Claude today?')"
+        ></textarea>
+        <button class="btn" onclick="askQuestion()" id="askBtn">Ask</button>
+      </div>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Analyzing your question...</p>
+      </div>
+
+      <div class="result" id="result">
+        <!-- Results will be inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Built with Lucid Studio API • Powered by AI
+  </footer>
+
+  <script>
+    // Load saved configuration from localStorage
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedApiUrl = localStorage.getItem('lucid_api_url');
+      const savedAppKey = localStorage.getItem('lucid_app_key');
+
+      if (savedApiUrl) document.getElementById('apiUrl').value = savedApiUrl;
+      if (savedAppKey) document.getElementById('appKey').value = savedAppKey;
+    });
+
+    // Save configuration to localStorage when changed
+    document.getElementById('apiUrl').addEventListener('change', (e) => {
+      localStorage.setItem('lucid_api_url', e.target.value);
+    });
+
+    document.getElementById('appKey').addEventListener('change', (e) => {
+      localStorage.setItem('lucid_app_key', e.target.value);
+    });
+
+    function setQuestion(text) {
+      document.getElementById('question').value = text;
+      document.getElementById('question').focus();
+    }
+
+    async function askQuestion() {
+      const question = document.getElementById('question').value.trim();
+      const apiUrl = document.getElementById('apiUrl').value.trim();
+      const appKey = document.getElementById('appKey').value.trim();
+
+      if (!question) {
+        alert('Please enter a question');
+        return;
+      }
+
+      if (!apiUrl) {
+        alert('Please enter your API URL in the configuration section');
+        return;
+      }
+
+      if (!appKey) {
+        alert('Please enter your APP_KEY in the configuration section');
+        return;
+      }
+
+      // Show loading state
+      document.getElementById('loading').classList.add('active');
+      document.getElementById('result').classList.remove('active');
+      document.getElementById('askBtn').disabled = true;
+
+      try {
+        const response = await fetch(`${apiUrl}/v1/analytics/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-app-key': appKey
+          },
+          body: JSON.stringify({ question })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        displayResult(data);
+
+      } catch (error) {
+        displayError(error.message);
+      } finally {
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('askBtn').disabled = false;
+      }
+    }
+
+    function displayResult(data) {
+      const resultDiv = document.getElementById('result');
+
+      if (data.error) {
+        displayError(data.error);
+        return;
+      }
+
+      let html = '';
+
+      // SQL Query
+      html += `
+        <div class="sql-query">
+          <h3>Generated SQL Query</h3>
+          <div class="sql-code">${escapeHtml(data.sql)}</div>
+        </div>
+      `;
+
+      // Explanation
+      if (data.explanation) {
+        html += `
+          <div class="explanation">
+            <h3>What this query does</h3>
+            <p>${escapeHtml(data.explanation)}</p>
+          </div>
+        `;
+      }
+
+      // Results Table
+      if (data.results && data.results.length > 0) {
+        html += `
+          <div class="results-table">
+            <div class="results-header">
+              <h3>Results (${data.resultCount} rows)</h3>
+              <button class="export-btn" onclick="exportToCSV()">Export CSV</button>
+            </div>
+            ${generateTable(data.results)}
+          </div>
+        `;
+
+        // Store results for export
+        window.currentResults = data.results;
+      } else {
+        html += `
+          <div class="empty-state">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+            </svg>
+            <p>No results found</p>
+          </div>
+        `;
+      }
+
+      resultDiv.innerHTML = html;
+      resultDiv.classList.add('active');
+    }
+
+    function displayError(message) {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = `
+        <div class="error">
+          <h3>Error</h3>
+          <p>${escapeHtml(message)}</p>
+        </div>
+      `;
+      resultDiv.classList.add('active');
+    }
+
+    function generateTable(data) {
+      if (!data || data.length === 0) return '';
+
+      const headers = Object.keys(data[0]);
+
+      let html = '<table><thead><tr>';
+      headers.forEach(header => {
+        html += `<th>${escapeHtml(header)}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      data.forEach(row => {
+        html += '<tr>';
+        headers.forEach(header => {
+          const value = row[header];
+          html += `<td>${value !== null && value !== undefined ? escapeHtml(String(value)) : ''}</td>`;
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      return html;
+    }
+
+    function exportToCSV() {
+      if (!window.currentResults || window.currentResults.length === 0) {
+        alert('No results to export');
+        return;
+      }
+
+      const data = window.currentResults;
+      const headers = Object.keys(data[0]);
+
+      let csv = headers.join(',') + '\n';
+
+      data.forEach(row => {
+        const values = headers.map(header => {
+          const value = row[header];
+          const stringValue = value !== null && value !== undefined ? String(value) : '';
+          // Escape quotes and wrap in quotes if contains comma
+          return stringValue.includes(',') || stringValue.includes('"')
+            ? `"${stringValue.replace(/"/g, '""')}"`
+            : stringValue;
+        });
+        csv += values.join(',') + '\n';
+      });
+
+      // Download
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lucid-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Allow Enter to submit (with Shift+Enter for new line)
+    document.getElementById('question').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        askQuestion();
+      }
+    });
+  </script>
+</body>
+</html>

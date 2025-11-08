@@ -1,0 +1,16 @@
+# Vercel
+.vercel
+
+# Local env files
+.env.local
+.env*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode
+.idea
+*.swp
+*.swo
