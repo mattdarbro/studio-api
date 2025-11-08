@@ -3,12 +3,14 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { authMiddleware, AuthenticatedRequest } from './auth';
 import { rateLimitMiddleware } from './rateLimit';
+import { usageTrackerMiddleware } from './middleware/usageTracker';
 import { getCatalog } from './models';
 import chatRouter from './routes/chat';
 import ephemeralRouter from './routes/ephemeral';
 import imagesRouter from './routes/images';
 import musicRouter from './routes/music';
 import validateRouter from './routes/validate';
+import analyticsRouter from './routes/analytics';
 import { logger } from './logger';
 
 // Load environment variables
@@ -62,7 +64,12 @@ app.use('/v1/validate', validateRouter);
 app.use(authMiddleware as any);
 app.use(rateLimitMiddleware as any);
 
+// Apply usage tracking middleware (after auth, tracks all API calls)
+app.use(usageTrackerMiddleware as any);
+
 // Routes
+app.use('/v1/analytics', analyticsRouter);
+
 app.get('/v1/models', (req, res) => {
   try {
     const catalog = getCatalog();
@@ -99,6 +106,7 @@ const server = app.listen(PORT, HOST, () => {
   logger.info(`⚡ Ephemeral: http://localhost:${PORT}/v1/ephemeral`);
   logger.info(`🎨 Images: http://localhost:${PORT}/v1/images`);
   logger.info(`🎵 Music: http://localhost:${PORT}/v1/music`);
+  logger.info(`📊 Analytics: http://localhost:${PORT}/v1/analytics/usage`);
   logger.info(`❤️  Health: http://localhost:${PORT}/health`);
 });
 
