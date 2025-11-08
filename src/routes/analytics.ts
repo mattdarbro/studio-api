@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { queryUsage, calculateStats, getLogCount, getAllLogs } from '../services/usage';
+import { executeQuery } from '../db/database';
 import { logger } from '../logger';
+import fetch from 'node-fetch';
 
 const router = Router();
 
@@ -272,6 +274,161 @@ router.get('/stats', (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Analytics stats error:', error);
     res.status(500).json({ error: 'Failed to get statistics' });
+  }
+});
+
+/**
+ * POST /v1/analytics/chat
+ * AI-powered analytics chat interface
+ *
+ * Ask questions in natural language about your usage data
+ * Examples:
+ * - "How much did arno-ios spend last week?"
+ * - "Which app used the most OpenAI requests yesterday?"
+ * - "Show me total costs by provider"
+ *
+ * Requires: x-app-key header for authentication
+ */
+router.post('/chat', async (req: Request, res: Response) => {
+  try {
+    // Require authentication with app key
+    const appKey = req.headers['x-app-key'] as string | undefined;
+    const validAppKey = process.env.APP_KEY;
+
+    if (!appKey || !validAppKey || appKey !== validAppKey) {
+      res.status(401).json({ error: 'Unauthorized: Valid x-app-key required' });
+      return;
+    }
+
+    const { question } = req.body;
+
+    if (!question || typeof question !== 'string') {
+      res.status(400).json({ error: 'Question field is required' });
+      return;
+    }
+
+    logger.info(`Analytics chat question: "${question}"`);
+
+    // Get database schema info to help AI generate queries
+    const schemaDescription = `
+Database Schema:
+Table: usage_logs
+Columns:
+- id: INTEGER (primary key)
+- timestamp: TEXT (ISO 8601 format, e.g., '2025-01-08T10:30:00Z')
+- user_id: TEXT (user identifier)
+- app_id: TEXT (app identifier, e.g., 'arno-ios', 'studio-mobile')
+- endpoint: TEXT (API endpoint, e.g., '/v1/chat', '/v1/images')
+- method: TEXT (HTTP method, e.g., 'POST', 'GET')
+- provider: TEXT (LLM provider, e.g., 'openai', 'anthropic', 'replicate')
+- model: TEXT (model name, e.g., 'gpt-5', 'claude-sonnet-4-5')
+- input_tokens: INTEGER (input token count)
+- output_tokens: INTEGER (output token count)
+- estimated_cost: INTEGER (cost in USD cents, e.g., 125 means $1.25)
+- duration: INTEGER (request duration in milliseconds)
+- status_code: INTEGER (HTTP status code, e.g., 200, 500)
+- error: TEXT (error message if failed)
+- created_at: TEXT (when log was created)
+
+Important:
+- Costs are in cents (divide by 100 for USD)
+- Use date() function for date comparisons: date(timestamp) = date('2025-01-08')
+- Use datetime() for date ranges: datetime(timestamp) >= datetime('2025-01-01')
+- For "last week", use: datetime(timestamp) >= datetime('now', '-7 days')
+- For "today", use: date(timestamp) = date('now')
+- For "this month", use: strftime('%Y-%m', timestamp) = strftime('%Y-%m', 'now')
+`;
+
+    // System prompt for AI to generate SQL
+    const systemPrompt = `You are an expert SQL analyst. Generate a SQLite query to answer the user's question about API usage logs.
+
+${schemaDescription}
+
+Rules:
+1. Generate ONLY valid SQLite SQL (no markdown, no explanations in the SQL)
+2. Always use proper date/time functions for date comparisons
+3. Always divide estimated_cost by 100.0 to show USD (not cents)
+4. Use appropriate aggregations (SUM, COUNT, AVG, etc.)
+5. Include helpful column aliases
+6. Limit results to top 10 by default unless user asks for more
+7. For cost queries, format as: ROUND(SUM(estimated_cost) / 100.0, 4) as cost_usd
+8. Return results in descending order of importance (cost, count, etc.)
+
+After the SQL query, on a new line starting with "EXPLANATION:", provide a brief explanation of what the query does.
+
+Format:
+[SQL QUERY]
+EXPLANATION: [Brief explanation]`;
+
+    // Use OpenAI API to generate SQL
+    const openaiKey = process.env.OPENAI_API_KEY;
+
+    if (!openaiKey) {
+      res.status(500).json({
+        error: 'OpenAI API key not configured. Set OPENAI_API_KEY environment variable.',
+        suggestion: 'The AI chat interface requires an LLM API to convert questions to SQL.'
+      });
+      return;
+    }
+
+    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini', // Fast and cheap for SQL generation
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: question }
+        ],
+        temperature: 0.1, // Low temperature for consistent SQL generation
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      logger.error('OpenAI API error:', errorText);
+      res.status(500).json({ error: 'Failed to generate SQL query' });
+      return;
+    }
+
+    const aiData = await aiResponse.json() as any;
+    const aiMessage = aiData.choices[0].message.content;
+
+    // Extract SQL and explanation
+    const parts = aiMessage.split('EXPLANATION:');
+    const sql = parts[0].trim();
+    const explanation = parts[1]?.trim() || 'Query generated successfully';
+
+    logger.debug(`Generated SQL: ${sql}`);
+
+    // Execute the SQL query
+    let results: any[] = [];
+    let executionError: string | null = null;
+
+    try {
+      results = executeQuery(sql);
+    } catch (error: any) {
+      executionError = error.message;
+      logger.error('SQL execution error:', error);
+    }
+
+    // Format response
+    res.json({
+      question,
+      sql,
+      explanation,
+      results,
+      resultCount: results.length,
+      error: executionError,
+      success: !executionError,
+    });
+
+  } catch (error: any) {
+    logger.error('Analytics chat error:', error);
+    res.status(500).json({ error: 'Failed to process chat request', details: error.message });
   }
 });
 
