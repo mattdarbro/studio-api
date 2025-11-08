@@ -397,10 +397,64 @@ EXPLANATION: [Brief explanation]`;
     const aiData = await aiResponse.json() as any;
     const aiMessage = aiData.choices[0].message.content;
 
-    // Extract SQL and explanation
-    const parts = aiMessage.split('EXPLANATION:');
-    const sql = parts[0].trim();
-    const explanation = parts[1]?.trim() || 'Query generated successfully';
+    // Extract SQL and explanation - handle multiple response formats
+    let sql = '';
+    let explanation = 'Query generated successfully';
+
+    // Try to extract SQL from markdown code blocks first
+    const sqlCodeBlockMatch = aiMessage.match(/```sql\s*\n([\s\S]*?)\n```/);
+    const genericCodeBlockMatch = aiMessage.match(/```\s*\n([\s\S]*?)\n```/);
+
+    if (sqlCodeBlockMatch) {
+      sql = sqlCodeBlockMatch[1].trim();
+      // Extract explanation after the code block
+      const afterCodeBlock = aiMessage.split('```')[2] || '';
+      const explanationMatch = afterCodeBlock.match(/EXPLANATION:\s*(.+)/);
+      if (explanationMatch) {
+        explanation = explanationMatch[1].trim();
+      }
+    } else if (genericCodeBlockMatch) {
+      sql = genericCodeBlockMatch[1].trim();
+      // Extract explanation after the code block
+      const afterCodeBlock = aiMessage.split('```')[2] || '';
+      const explanationMatch = afterCodeBlock.match(/EXPLANATION:\s*(.+)/);
+      if (explanationMatch) {
+        explanation = explanationMatch[1].trim();
+      }
+    } else {
+      // No code blocks, split by EXPLANATION:
+      const parts = aiMessage.split('EXPLANATION:');
+      sql = parts[0].trim();
+      explanation = parts[1]?.trim() || explanation;
+    }
+
+    // Remove any remaining markdown or formatting
+    sql = sql.replace(/^```sql\s*\n?/, '').replace(/\n?```$/, '').trim();
+
+    // Validate that we extracted SQL
+    if (!sql || sql.length === 0) {
+      logger.error('Failed to extract SQL from AI response:', aiMessage);
+      res.status(500).json({
+        error: 'Failed to extract SQL from AI response',
+        rawResponse: aiMessage,
+        suggestion: 'The AI did not return SQL in the expected format. Try rephrasing your question.'
+      });
+      return;
+    }
+
+    // Basic SQL validation - should start with a SQL keyword
+    const sqlKeywords = ['SELECT', 'WITH', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'ALTER'];
+    const startsWithKeyword = sqlKeywords.some(keyword => sql.toUpperCase().startsWith(keyword));
+
+    if (!startsWithKeyword) {
+      logger.error('Extracted text does not appear to be SQL:', sql);
+      res.status(500).json({
+        error: 'Extracted text does not appear to be valid SQL',
+        extractedText: sql,
+        suggestion: 'The AI response could not be parsed correctly. Try rephrasing your question.'
+      });
+      return;
+    }
 
     logger.debug(`Generated SQL: ${sql}`);
 
