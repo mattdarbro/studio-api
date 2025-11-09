@@ -397,12 +397,21 @@ EXPLANATION: [Brief explanation]`;
     const aiData = await aiResponse.json() as any;
     const aiMessage = aiData.choices[0].message.content;
 
+    logger.debug(`Raw AI response: ${aiMessage}`);
+
     // Extract SQL and explanation
     const parts = aiMessage.split('EXPLANATION:');
-    const sql = parts[0].trim();
+    let rawSql = parts[0].trim();
     const explanation = parts[1]?.trim() || 'Query generated successfully';
 
-    logger.debug(`Generated SQL: ${sql}`);
+    // Remove markdown code blocks if present
+    // Handles: ```sql ... ``` or ``` ... ```
+    rawSql = rawSql.replace(/^```(?:sql)?\s*\n?/i, '').replace(/\n?```\s*$/, '');
+
+    // Clean up any remaining whitespace
+    const sql = rawSql.trim();
+
+    logger.debug(`Extracted SQL: ${sql}`);
 
     // Execute the SQL query
     let results: any[] = [];
