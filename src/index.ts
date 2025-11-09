@@ -9,6 +9,7 @@ import chatRouter from './routes/chat';
 import ephemeralRouter from './routes/ephemeral';
 import imagesRouter from './routes/images';
 import musicRouter from './routes/music';
+import voiceRouter from './routes/voice';
 import validateRouter from './routes/validate';
 import analyticsRouter from './routes/analytics';
 import { logger } from './logger';
@@ -86,6 +87,7 @@ app.use('/v1/chat', chatRouter);
 app.use('/v1/ephemeral', ephemeralRouter);
 app.use('/v1/images', imagesRouter);
 app.use('/v1/music', musicRouter);
+app.use('/v1/voice', voiceRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -108,6 +110,7 @@ const server = app.listen(PORT, HOST, () => {
   logger.info(`⚡ Ephemeral: http://localhost:${PORT}/v1/ephemeral`);
   logger.info(`🎨 Images: http://localhost:${PORT}/v1/images`);
   logger.info(`🎵 Music: http://localhost:${PORT}/v1/music`);
+  logger.info(`🎙️  Voice: http://localhost:${PORT}/v1/voice`);
   logger.info(`📊 Analytics: http://localhost:${PORT}/v1/analytics/usage`);
   logger.info(`🤖 AI Chat: http://localhost:${PORT}/v1/analytics/chat`);
   logger.info(`❤️  Health: http://localhost:${PORT}/health`);

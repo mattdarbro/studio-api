@@ -10,10 +10,11 @@ Studio API (Lucid) is a centralized LLM provider gateway that manages model rout
 
 - ✅ **OpenAI** - Chat completions, realtime API
 - ✅ **Replicate** - Image generation (Flux models)
-- ✅ **ElevenLabs** - Music generation
+- ✅ **ElevenLabs** - Music generation, text-to-speech (voice synthesis)
+- ✅ **Anthropic** - Claude models (via chat endpoint)
+- ✅ **Grok** - xAI models (via chat endpoint)
 
 **Coming Soon:**
-- ❌ Anthropic (Claude)
 - ❌ Google (Gemini)
 - ❌ More image models
 
@@ -390,12 +391,94 @@ curl -X POST https://studio-api-production-3deb.up.railway.app/v1/music \
   }'
 ```
 
+### POST /v1/voice
+Generate speech from text using ElevenLabs
+
+**Headers:**
+- `x-app-key` or `Authorization: Bearer <token>` (required)
+- `x-model-channel` (optional, default: "stable")
+- `x-user-elevenlabs-key` (optional, user's own API key)
+
+**Request Body:**
+```json
+{
+  "text": "Hello, this is a test of text to speech.",
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "kind": "voice.default"
+}
+```
+
+**Parameters:**
+- `text` (required): Text to convert to speech (max 5000 characters)
+- `voice_id` (optional): ElevenLabs voice ID (default: "21m00Tcm4TlvDq8ikWAM" - Rachel)
+- `kind` (optional): Model kind (default: "voice.default")
+
+**Available Voice IDs:**
+- `21m00Tcm4TlvDq8ikWAM` - Rachel (default, warm female voice)
+- `AZnzlk1XvdvUeBnXmlld` - Domi (strong female voice)
+- `EXAVITQu4vr4xnSDxMaL` - Bella (soft female voice)
+- `ErXwobaYiN019PkySvjV` - Antoni (well-rounded male voice)
+- `MF3mGyEYCl7XYWbV9V6O` - Elli (emotional female voice)
+- `TxGEqnHWrfWFTfGW9XjX` - Josh (deep male voice)
+- `VR6AewLTigWG4xSOukaG` - Arnold (crisp male voice)
+- `pNInz6obpgDQGcFmaJgB` - Adam (deep male voice)
+- `yoZ06aMxZJJ28mfd3POQ` - Sam (raspy male voice)
+
+**Response:**
+```json
+{
+  "audio_base64": "base64-encoded-audio-data",
+  "format": "mp3",
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "text_length": 42
+}
+```
+
+**Example:**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/voice \
+  -H "Content-Type: application/json" \
+  -H "x-app-key: YOUR_APP_KEY" \
+  -d '{
+    "text": "Welcome to Studio API. This is ElevenLabs text to speech.",
+    "voice_id": "21m00Tcm4TlvDq8ikWAM",
+    "kind": "voice.turbo"
+  }'
+```
+
+**Usage in JavaScript:**
+```javascript
+// Generate speech
+const response = await fetch('https://studio-api-production-3deb.up.railway.app/v1/voice', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-session-token': sessionToken,
+  },
+  body: JSON.stringify({
+    text: 'Hello world!',
+    voice_id: '21m00Tcm4TlvDq8ikWAM'
+  })
+});
+
+const { audio_base64 } = await response.json();
+
+// Play the audio
+const audio = new Audio(`data:audio/mp3;base64,${audio_base64}`);
+audio.play();
+```
+
 ## Model Kinds
 
 Available model kinds (configurable in `model-catalog.json`):
 
 **Chat:**
-- `chat.default` - Standard chat completion (GPT-4)
+- `chat.default` - Standard chat completion (GPT-5)
+- `chat.gpt5` - GPT-5
+- `chat.claude` - Claude Sonnet 4.5
+- `chat.claude45` - Claude Sonnet 4.5
+- `chat.grok` - Grok 4 Fast Reasoning
+- `chat.grokLatest` - Latest Grok model
 
 **Realtime:**
 - `realtime.default` - Realtime audio/voice API
@@ -407,6 +490,12 @@ Available model kinds (configurable in `model-catalog.json`):
 
 **Music:**
 - `music.default` - Music generation (ElevenLabs)
+
+**Voice:**
+- `voice.default` - Standard voice synthesis (Turbo v2.5)
+- `voice.flash` - Fastest voice synthesis (Flash v2.5)
+- `voice.turbo` - High quality voice (Turbo v2.5)
+- `voice.multilingual` - Multilingual voice support (v2)
 
 ## Rate Limiting
 
@@ -774,6 +863,331 @@ Then query analytics per app:
 3. Verify it appears in analytics dashboard
 4. Gradually migrate remaining endpoints
 5. Decommission direct provider API keys once fully migrated
+
+## App 10202 - Complete Implementation Guide
+
+**App ID:** 10202
+**Status:** Near completion
+**Purpose:** Full-featured Studio API with comprehensive model support
+
+### Current Features
+
+#### Core Functionality
+- ✅ Multi-provider LLM gateway (OpenAI, Anthropic, Grok)
+- ✅ Session-based authentication with JWT support
+- ✅ Rate limiting (100 requests per 15 minutes)
+- ✅ Usage tracking and analytics
+- ✅ Model channel management (stable, beta, fast)
+- ✅ User-provided API key support
+
+#### Endpoints
+- ✅ `/v1/validate` - Session token generation
+- ✅ `/v1/models` - Model catalog
+- ✅ `/v1/chat` - Chat completions (OpenAI, Claude, Grok)
+- ✅ `/v1/ephemeral` - Realtime API tokens
+- ✅ `/v1/images` - Image generation (Replicate/Flux)
+- ✅ `/v1/images/generate` - Simplified image generation
+- ✅ `/v1/images/:id` - Check image status
+- ✅ `/v1/music` - Music generation (ElevenLabs)
+- ✅ `/v1/voice` - Text-to-speech (ElevenLabs)
+- ✅ `/v1/analytics/usage` - Usage analytics
+- ✅ `/v1/analytics/chat` - AI-powered analytics queries
+
+#### Analytics Dashboard
+- ✅ Natural language queries for usage data
+- ✅ Cost tracking by app, user, and model
+- ✅ Request monitoring and error tracking
+- ✅ Collapsible legacy app integration guide
+
+### Quick Start for App 10202
+
+**1. Environment Setup**
+```bash
+# Required
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GROK_API_KEY=xai-...
+REPLICATE_API_KEY=r8_...
+ELEVENLABS_API_KEY=el_...
+
+# Authentication
+APP_KEY=your-secure-app-key
+APP_JWT_SECRET=your-jwt-secret
+
+# Optional
+PORT=3000
+LOG_LEVEL=info
+```
+
+**2. Get Session Token**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/validate \
+  -H "x-app-key: YOUR_APP_KEY" \
+  -H "x-model-channel: stable" \
+  -H "x-app-id: 10202"
+```
+
+**3. Make API Calls**
+```javascript
+// Chat with multiple providers
+const chat = await fetch('https://studio-api-production-3deb.up.railway.app/v1/chat', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-session-token': sessionToken,
+    'x-app-id': '10202'
+  },
+  body: JSON.stringify({
+    kind: 'chat.claude',  // or chat.gpt5, chat.grok
+    messages: [{ role: 'user', content: 'Hello!' }]
+  })
+});
+
+// Generate images
+const image = await fetch('https://studio-api-production-3deb.up.railway.app/v1/images/generate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-session-token': sessionToken
+  },
+  body: JSON.stringify({
+    prompt: 'a beautiful sunset',
+    width: 1024,
+    height: 1024,
+    style: 'photorealistic'
+  })
+});
+
+// Text-to-speech
+const voice = await fetch('https://studio-api-production-3deb.up.railway.app/v1/voice', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-session-token': sessionToken
+  },
+  body: JSON.stringify({
+    text: 'Hello from app 10202!',
+    voice_id: '21m00Tcm4TlvDq8ikWAM',
+    kind: 'voice.turbo'
+  })
+});
+
+// Generate music
+const music = await fetch('https://studio-api-production-3deb.up.railway.app/v1/music', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-session-token': sessionToken
+  },
+  body: JSON.stringify({
+    prompt: 'upbeat electronic music',
+    duration: 30
+  })
+});
+```
+
+**4. Query Analytics**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/analytics/chat \
+  -H "Content-Type: application/json" \
+  -H "x-app-key: YOUR_APP_KEY" \
+  -d '{"message": "How much did app 10202 spend this week?"}'
+```
+
+### Deployment Checklist
+
+- [x] Core API endpoints implemented
+- [x] Multi-provider support (OpenAI, Anthropic, Grok, Replicate, ElevenLabs)
+- [x] Authentication (App Key + JWT + Session Tokens)
+- [x] Rate limiting
+- [x] Usage tracking
+- [x] Analytics dashboard with AI chat
+- [x] Model catalog system
+- [x] User-provided API keys
+- [x] Image generation (Flux models)
+- [x] Music generation (ElevenLabs)
+- [x] Text-to-speech (ElevenLabs)
+- [x] Error handling and logging
+- [x] Production deployment (Railway)
+- [ ] Documentation for guides (in progress)
+- [ ] Final testing and validation
+
+## Guides
+
+### Creating Custom Integration Guides
+
+If you're building additional apps on top of Studio API, you can create custom integration guides to help your team understand how to use the API effectively.
+
+#### Guide Template
+
+Create a new markdown file (e.g., `GUIDE_YOUR_APP.md`) with the following structure:
+
+```markdown
+# [Your App Name] Integration Guide
+
+## Overview
+Brief description of what your app does and why it uses Studio API.
+
+## Prerequisites
+- Studio API app key
+- Environment setup instructions
+- Any app-specific requirements
+
+## Authentication
+How your app handles authentication with Studio API:
+- Session tokens vs app keys
+- Token refresh strategy
+- Security considerations
+
+## API Usage
+Document how your app uses each endpoint:
+
+### Chat
+[Examples specific to your app]
+
+### Images
+[Examples specific to your app]
+
+### Voice/Music
+[Examples specific to your app]
+
+## Error Handling
+How your app handles API errors:
+- Retry logic
+- Fallback strategies
+- User messaging
+
+## Analytics Integration
+How to track usage for your app:
+- Setting x-app-id header
+- Querying analytics
+- Cost monitoring
+
+## Deployment
+App-specific deployment instructions:
+- Environment variables
+- Build/deploy process
+- Testing checklist
+
+## Troubleshooting
+Common issues and solutions specific to your app
+```
+
+#### Example Guides by Use Case
+
+**Mobile App Guide:**
+```markdown
+# Mobile App Integration Guide
+
+## Quick Start
+1. Install SDK: `npm install studio-api-client`
+2. Initialize with your app key
+3. Create session on app startup
+4. Use session token for all requests
+
+## Optimizations
+- Cache session tokens in secure storage
+- Implement background refresh
+- Handle network failures gracefully
+- Use `image.generate` endpoint for simplicity
+```
+
+**Web Dashboard Guide:**
+```markdown
+# Web Dashboard Integration Guide
+
+## Authentication Flow
+1. User logs in to your app
+2. Backend validates user
+3. Backend gets Studio API session token
+4. Frontend receives session token
+5. Frontend makes API calls with session token
+
+## Best Practices
+- Refresh token every 10 minutes
+- Show loading states during AI operations
+- Display costs to users (optional)
+- Implement request queuing for batch operations
+```
+
+**CLI Tool Guide:**
+```markdown
+# CLI Tool Integration Guide
+
+## Setup
+```bash
+export STUDIO_API_KEY="your-key"
+export STUDIO_API_URL="https://studio-api-production-3deb.up.railway.app"
+```
+
+## Command Examples
+```bash
+# Chat
+cli chat "What is the weather?"
+
+# Generate image
+cli image "a cat" --width 1024 --height 1024
+
+# Text to speech
+cli voice "Hello world" --voice rachel
+```
+
+## Configuration
+Store user preferences in `~/.studio-api-config.json`
+```
+
+#### Adding Guides to This Document
+
+To add a new guide reference to this integration document:
+
+1. Create your guide file (e.g., `GUIDE_MOBILE.md`)
+2. Add a link in the Guides section above
+3. Include key highlights in this main integration guide
+4. Keep detailed implementation in the separate guide file
+
+**Example:**
+
+```markdown
+## Guides
+
+### Mobile App Integration
+See [GUIDE_MOBILE.md](./GUIDE_MOBILE.md) for complete mobile app integration.
+
+**Key Points:**
+- Use session tokens for auth
+- Cache tokens securely
+- Implement background refresh
+- Use simplified endpoints (`/v1/images/generate`)
+
+### Web Dashboard Integration
+See [GUIDE_WEB.md](./GUIDE_WEB.md) for web dashboard integration.
+
+**Key Points:**
+- Server-side session management
+- Client-side token storage
+- Request queuing for batch operations
+- Cost display to users
+```
+
+### Guide Best Practices
+
+1. **Keep guides focused** - One guide per app or use case
+2. **Include code examples** - Show real implementation patterns
+3. **Document edge cases** - Common errors and solutions
+4. **Update regularly** - As API evolves, keep guides current
+5. **Link to main docs** - Reference this integration guide for core concepts
+6. **Test examples** - Ensure all code snippets work
+7. **Show costs** - Help users understand pricing implications
+
+### Contributing Guides
+
+If you create a useful guide, consider contributing it back:
+
+1. Fork the repository
+2. Add your guide file
+3. Update this section with a link
+4. Submit a pull request
+5. Include examples and test cases
 
 ## Support
 
