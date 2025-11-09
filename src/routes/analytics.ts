@@ -397,45 +397,61 @@ EXPLANATION: [Brief explanation]`;
     const aiData = await aiResponse.json() as any;
     const aiMessage = aiData.choices[0].message.content;
 
-    logger.debug(`Raw AI response: ${aiMessage}`);
+    logger.info(`[Analytics Chat] Raw AI response: ${aiMessage.substring(0, 200)}...`);
 
     // Extract SQL and explanation - handle multiple response formats
     let sql = '';
     let explanation = 'Query generated successfully';
 
-    // Try to extract SQL from markdown code blocks first
-    const sqlCodeBlockMatch = aiMessage.match(/```sql\s*\n([\s\S]*?)\n```/);
-    const genericCodeBlockMatch = aiMessage.match(/```\s*\n([\s\S]*?)\n```/);
+    try {
+      // Try to extract SQL from markdown code blocks first
+      const sqlCodeBlockMatch = aiMessage.match(/```sql\s*\n([\s\S]*?)\n```/);
+      const genericCodeBlockMatch = aiMessage.match(/```\s*\n([\s\S]*?)\n```/);
 
-    if (sqlCodeBlockMatch) {
-      sql = sqlCodeBlockMatch[1].trim();
-      // Extract explanation after the code block
-      const afterCodeBlock = aiMessage.split('```')[2] || '';
-      const explanationMatch = afterCodeBlock.match(/EXPLANATION:\s*(.+)/);
-      if (explanationMatch) {
-        explanation = explanationMatch[1].trim();
+      if (sqlCodeBlockMatch) {
+        logger.info('[Analytics Chat] Found SQL code block');
+        sql = sqlCodeBlockMatch[1].trim();
+        // Extract explanation after the code block
+        const afterCodeBlock = aiMessage.split('```')[2] || '';
+        const explanationMatch = afterCodeBlock.match(/EXPLANATION:\s*(.+)/);
+        if (explanationMatch) {
+          explanation = explanationMatch[1].trim();
+        }
+      } else if (genericCodeBlockMatch) {
+        logger.info('[Analytics Chat] Found generic code block');
+        sql = genericCodeBlockMatch[1].trim();
+        // Extract explanation after the code block
+        const afterCodeBlock = aiMessage.split('```')[2] || '';
+        const explanationMatch = afterCodeBlock.match(/EXPLANATION:\s*(.+)/);
+        if (explanationMatch) {
+          explanation = explanationMatch[1].trim();
+        }
+      } else {
+        logger.info('[Analytics Chat] No code blocks found, using fallback');
+        // No code blocks, split by EXPLANATION:
+        const parts = aiMessage.split('EXPLANATION:');
+        sql = parts[0].trim();
+        explanation = parts[1]?.trim() || explanation;
       }
-    } else if (genericCodeBlockMatch) {
-      sql = genericCodeBlockMatch[1].trim();
-      // Extract explanation after the code block
-      const afterCodeBlock = aiMessage.split('```')[2] || '';
-      const explanationMatch = afterCodeBlock.match(/EXPLANATION:\s*(.+)/);
-      if (explanationMatch) {
-        explanation = explanationMatch[1].trim();
-      }
-    } else {
-      // No code blocks, split by EXPLANATION:
-      const parts = aiMessage.split('EXPLANATION:');
-      sql = parts[0].trim();
-      explanation = parts[1]?.trim() || explanation;
+
+      // Remove any remaining markdown or formatting
+      sql = sql.replace(/^```sql\s*\n?/, '').replace(/\n?```$/, '').trim();
+
+      logger.info(`[Analytics Chat] Extracted SQL (${sql.length} chars): ${sql.substring(0, 100)}...`);
+
+    } catch (extractError: any) {
+      logger.error('[Analytics Chat] SQL extraction error:', extractError);
+      res.status(500).json({
+        error: 'Error extracting SQL from AI response',
+        details: extractError.message,
+        rawResponse: aiMessage
+      });
+      return;
     }
-
-    // Remove any remaining markdown or formatting
-    sql = sql.replace(/^```sql\s*\n?/, '').replace(/\n?```$/, '').trim();
 
     // Validate that we extracted SQL
     if (!sql || sql.length === 0) {
-      logger.error('Failed to extract SQL from AI response:', aiMessage);
+      logger.error('[Analytics Chat] No SQL extracted from AI response');
       res.status(500).json({
         error: 'Failed to extract SQL from AI response',
         rawResponse: aiMessage,
@@ -449,7 +465,7 @@ EXPLANATION: [Brief explanation]`;
     const startsWithKeyword = sqlKeywords.some(keyword => sql.toUpperCase().startsWith(keyword));
 
     if (!startsWithKeyword) {
-      logger.error('Extracted text does not appear to be SQL:', sql);
+      logger.error(`[Analytics Chat] Extracted text does not appear to be SQL: ${sql.substring(0, 50)}`);
       res.status(500).json({
         error: 'Extracted text does not appear to be valid SQL',
         extractedText: sql,
@@ -458,7 +474,7 @@ EXPLANATION: [Brief explanation]`;
       return;
     }
 
-    logger.debug(`Extracted SQL: ${sql}`);
+    logger.info(`[Analytics Chat] SQL validated successfully`);
 
     // Execute the SQL query
     let results: any[] = [];

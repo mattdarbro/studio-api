@@ -948,13 +948,17 @@ class StudioAPIClient {
       if (savedAppKey) document.getElementById('appKey').value = savedAppKey;
     });
 
-    // Save configuration to localStorage when changed
-    document.getElementById('apiUrl').addEventListener('change', (e) => {
-      localStorage.setItem('lucid_api_url', e.target.value);
+    // Save configuration to localStorage immediately on input
+    document.getElementById('apiUrl').addEventListener('input', (e) => {
+      const value = e.target.value.trim();
+      localStorage.setItem('lucid_api_url', value);
+      console.log('Saved API URL:', value);
     });
 
-    document.getElementById('appKey').addEventListener('change', (e) => {
-      localStorage.setItem('lucid_app_key', e.target.value);
+    document.getElementById('appKey').addEventListener('input', (e) => {
+      const value = e.target.value.trim();
+      localStorage.setItem('lucid_app_key', value);
+      console.log('Saved APP_KEY: [REDACTED]');
     });
 
     function toggleIntegration() {
@@ -972,7 +976,7 @@ class StudioAPIClient {
 
     async function askQuestion() {
       const question = document.getElementById('question').value.trim();
-      const apiUrl = document.getElementById('apiUrl').value.trim();
+      let apiUrl = document.getElementById('apiUrl').value.trim();
       const appKey = document.getElementById('appKey').value.trim();
 
       if (!question) {
@@ -981,14 +985,27 @@ class StudioAPIClient {
       }
 
       if (!apiUrl) {
-        alert('Please enter your API URL in the configuration section');
+        alert('⚠️ Please enter your Railway API URL in the Configuration section above.\n\nExample: https://your-api.railway.app');
+        document.getElementById('apiUrl').focus();
         return;
       }
 
       if (!appKey) {
-        alert('Please enter your APP_KEY in the configuration section');
+        alert('⚠️ Please enter your APP_KEY in the Configuration section above.\n\nFind it in your Railway environment variables.');
+        document.getElementById('appKey').focus();
         return;
       }
+
+      // Ensure URL doesn't end with slash
+      apiUrl = apiUrl.replace(/\/+$/, '');
+
+      // Ensure URL has protocol
+      if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
+        apiUrl = 'https://' + apiUrl;
+      }
+
+      const fullUrl = `${apiUrl}/v1/analytics/chat`;
+      console.log('Making request to:', fullUrl);
 
       // Show loading state
       document.getElementById('loading').classList.add('active');
@@ -996,7 +1013,7 @@ class StudioAPIClient {
       document.getElementById('askBtn').disabled = true;
 
       try {
-        const response = await fetch(`${apiUrl}/v1/analytics/chat`, {
+        const response = await fetch(fullUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1006,15 +1023,26 @@ class StudioAPIClient {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `HTTP ${response.status}`);
+          let errorMessage = `HTTP ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+            if (errorData.details) {
+              errorMessage += '\n\nDetails: ' + errorData.details;
+            }
+          } catch (e) {
+            // Response wasn't JSON
+          }
+          throw new Error(errorMessage);
         }
 
         const data = await response.json();
+        console.log('Response received:', data);
         displayResult(data);
 
       } catch (error) {
-        displayError(error.message);
+        console.error('Request error:', error);
+        displayError(error.message + '\n\nCheck console for details.');
       } finally {
         document.getElementById('loading').classList.remove('active');
         document.getElementById('askBtn').disabled = false;
