@@ -397,6 +397,8 @@ EXPLANATION: [Brief explanation]`;
     const aiData = await aiResponse.json() as any;
     const aiMessage = aiData.choices[0].message.content;
 
+    logger.debug(`Raw AI response: ${aiMessage}`);
+
     // Extract SQL and explanation - handle multiple response formats
     let sql = '';
     let explanation = 'Query generated successfully';
@@ -456,7 +458,7 @@ EXPLANATION: [Brief explanation]`;
       return;
     }
 
-    logger.debug(`Generated SQL: ${sql}`);
+    logger.debug(`Extracted SQL: ${sql}`);
 
     // Execute the SQL query
     let results: any[] = [];
