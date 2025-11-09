@@ -568,6 +568,213 @@ curl -X POST https://studio-api-production-3deb.up.railway.app/v1/chat \
   -d '{"messages":[{"role":"user","content":"test"}],"kind":"chat.default"}'
 ```
 
+## Integrating Analytics into Legacy Apps
+
+If you have existing applications and want to add the Studio API analytics dashboard, follow these steps:
+
+### Prerequisites
+
+Your legacy app needs to be modified to:
+1. Route LLM requests through Studio API (instead of calling OpenAI/Anthropic directly)
+2. Include identification headers so analytics can track per-app usage
+
+### Step-by-Step Integration
+
+#### 1. Update Your API Calls
+
+Add Studio API headers to your existing LLM requests:
+
+```javascript
+// Before (Direct OpenAI call in legacy app):
+const response = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello' }]
+});
+
+// After (Through Studio API):
+const response = await fetch('https://studio-api-production-3deb.up.railway.app/v1/chat', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-app-key': process.env.STUDIO_API_KEY,
+    'x-app-id': 'my-legacy-app-name',  // ← Identifies your app in analytics
+    'x-user-id': userId,                // ← Optional: track per-user usage
+  },
+  body: JSON.stringify({
+    kind: 'chat.default',
+    messages: [{ role: 'user', content: 'Hello' }]
+  })
+});
+```
+
+#### 2. Add App Identification
+
+The analytics dashboard groups data by `app_id`. Make sure to include the `x-app-id` header:
+
+```javascript
+// Example: Identify different environments
+const APP_ID = process.env.NODE_ENV === 'production'
+  ? 'my-app-prod'
+  : 'my-app-dev';
+
+headers: {
+  'x-app-id': APP_ID,  // Shows up as separate apps in analytics
+}
+```
+
+#### 3. Configure Environment Variables
+
+Update your legacy app's `.env` file:
+
+```bash
+# Add these to your existing environment variables:
+STUDIO_API_URL=https://studio-api-production-3deb.up.railway.app
+STUDIO_API_KEY=your-app-key-here
+
+# Optional: Identify your app
+APP_ID=my-legacy-app
+```
+
+#### 4. Set Up Analytics Dashboard
+
+Once your app is making requests through Studio API:
+
+1. **Deploy the dashboard** (see `dashboard/README.md`)
+2. **Configure the dashboard** with:
+   - API URL: `https://studio-api-production-3deb.up.railway.app`
+   - APP_KEY: Same key your apps use
+3. **Start querying** your usage data!
+
+#### 5. Example Questions for Your Legacy App
+
+Once integrated, you can ask questions like:
+
+- "How much did my-legacy-app spend this week?"
+- "Which users generated the most requests yesterday?"
+- "Show me all failed requests for my-legacy-app"
+- "What's the average response time by model?"
+
+### Migration Patterns
+
+#### Pattern 1: Wrapper Function (Minimal Changes)
+
+Create a wrapper around your existing OpenAI calls:
+
+```javascript
+// utils/llm.js
+async function chatCompletion(messages, userId = null) {
+  const response = await fetch(`${process.env.STUDIO_API_URL}/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-app-key': process.env.STUDIO_API_KEY,
+      'x-app-id': process.env.APP_ID,
+      'x-user-id': userId,
+    },
+    body: JSON.stringify({
+      kind: 'chat.default',
+      messages,
+    })
+  });
+
+  return response.json();
+}
+
+// Then replace all your OpenAI calls with:
+// const result = await chatCompletion(messages, currentUser.id);
+```
+
+#### Pattern 2: Drop-in Replacement (Using OpenAI SDK)
+
+If you're using the OpenAI SDK, you can point it to Studio API:
+
+```javascript
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  baseURL: 'https://studio-api-production-3deb.up.railway.app/v1',
+  apiKey: process.env.STUDIO_API_KEY,
+  defaultHeaders: {
+    'x-app-id': 'my-legacy-app',
+    'x-user-id': userId,
+  }
+});
+
+// Your existing OpenAI SDK calls will now route through Studio API
+const response = await openai.chat.completions.create({
+  model: 'chat.default',  // Use Studio API "kinds" instead
+  messages: [{ role: 'user', content: 'Hello' }]
+});
+```
+
+**Note:** This pattern has limitations - Studio API uses `kind` instead of `model`, so you'll need to adjust model selection logic.
+
+#### Pattern 3: Gradual Migration
+
+Migrate one feature at a time:
+
+```javascript
+const USE_STUDIO_API = process.env.ENABLE_STUDIO_API === 'true';
+
+async function chatCompletion(messages) {
+  if (USE_STUDIO_API) {
+    // New: Studio API with analytics
+    return await studioApiChat(messages);
+  } else {
+    // Old: Direct OpenAI
+    return await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages,
+    });
+  }
+}
+```
+
+Toggle with feature flag until confident in the migration.
+
+### Tracking Multiple Legacy Apps
+
+If you have several legacy apps, differentiate them with unique app IDs:
+
+```javascript
+// App 1: Mobile app
+headers: { 'x-app-id': 'mobile-ios' }
+
+// App 2: Web dashboard
+headers: { 'x-app-id': 'web-dashboard' }
+
+// App 3: Background jobs
+headers: { 'x-app-id': 'background-worker' }
+```
+
+Then query analytics per app:
+
+- "How much did mobile-ios spend vs web-dashboard?"
+- "Show me background-worker usage this month"
+
+### Troubleshooting
+
+**My legacy app's data isn't showing up:**
+- Check that `x-app-id` header is being sent
+- Verify requests are going to Studio API (check network tab)
+- Confirm Studio API has logging enabled (check Railway logs)
+
+**Analytics shows 'unknown' app:**
+- Your app is missing the `x-app-id` header
+- Add it to all your API requests
+
+**Costs seem wrong:**
+- Verify the model kinds in your requests match the catalog
+- Check `model-catalog.json` for correct pricing
+
+### Next Steps
+
+1. Choose a migration pattern above
+2. Update one endpoint in your legacy app as a test
+3. Verify it appears in analytics dashboard
+4. Gradually migrate remaining endpoints
+5. Decommission direct provider API keys once fully migrated
+
 ## Support
 
 - Check deployment logs in Railway for API errors
