@@ -60,10 +60,21 @@ export async function elevenLabsTextToSpeech(params: {
   text: string;
   voice_id: string;
   key: string;
+  apply_text_normalization?: 'auto' | 'on' | 'off';
 }): Promise<Buffer> {
-  const { text, voice_id, key } = params;
+  const { text, voice_id, key, apply_text_normalization } = params;
 
   logger.debug(`ElevenLabs text-to-speech: "${text.substring(0, 50)}..." with voice: ${voice_id}`);
+
+  const requestBody: any = {
+    text,
+    model_id: 'eleven_turbo_v2_5'
+  };
+
+  // Add text normalization parameter if provided
+  if (apply_text_normalization) {
+    requestBody.apply_text_normalization = apply_text_normalization;
+  }
 
   const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
     method: 'POST',
@@ -71,10 +82,7 @@ export async function elevenLabsTextToSpeech(params: {
       'xi-api-key': key,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      text,
-      model_id: 'eleven_turbo_v2_5'
-    }),
+    body: JSON.stringify(requestBody),
     agent: keepAliveAgent
   });
 

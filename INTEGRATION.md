@@ -404,7 +404,8 @@ Generate speech from text using ElevenLabs
 {
   "text": "Hello, this is a test of text to speech.",
   "voice_id": "21m00Tcm4TlvDq8ikWAM",
-  "kind": "voice.default"
+  "kind": "voice.default",
+  "apply_text_normalization": "auto"
 }
 ```
 
@@ -412,6 +413,7 @@ Generate speech from text using ElevenLabs
 - `text` (required): Text to convert to speech (max 5000 characters)
 - `voice_id` (optional): ElevenLabs voice ID (default: "21m00Tcm4TlvDq8ikWAM" - Rachel)
 - `kind` (optional): Model kind (default: "voice.default")
+- `apply_text_normalization` (optional): Controls text normalization. Options: `'auto'` (default - ElevenLabs decides), `'on'` (always normalize numbers, dates, etc.), `'off'` (no normalization). Note: For `eleven_turbo_v2_5` and `eleven_flash_v2_5` models, normalization requires an Enterprise plan.
 
 **Available Voice IDs:**
 - `21m00Tcm4TlvDq8ikWAM` - Rachel (default, warm female voice)
@@ -442,7 +444,8 @@ curl -X POST https://studio-api-production-3deb.up.railway.app/v1/voice \
   -d '{
     "text": "Welcome to Studio API. This is ElevenLabs text to speech.",
     "voice_id": "21m00Tcm4TlvDq8ikWAM",
-    "kind": "voice.turbo"
+    "kind": "voice.turbo",
+    "apply_text_normalization": "on"
   }'
 ```
 
@@ -457,7 +460,8 @@ const response = await fetch('https://studio-api-production-3deb.up.railway.app/
   },
   body: JSON.stringify({
     text: 'Hello world!',
-    voice_id: '21m00Tcm4TlvDq8ikWAM'
+    voice_id: '21m00Tcm4TlvDq8ikWAM',
+    apply_text_normalization: 'on'  // Optional: normalize text (e.g., spell out numbers)
   })
 });
 
@@ -968,7 +972,8 @@ const voice = await fetch('https://studio-api-production-3deb.up.railway.app/v1/
   body: JSON.stringify({
     text: 'Hello from app 10202!',
     voice_id: '21m00Tcm4TlvDq8ikWAM',
-    kind: 'voice.turbo'
+    kind: 'voice.turbo',
+    apply_text_normalization: 'on'
   })
 });
 

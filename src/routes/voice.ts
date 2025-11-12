@@ -10,6 +10,7 @@ interface VoiceRequestBody {
   text: string;
   voice_id?: string;
   kind?: string;
+  apply_text_normalization?: 'auto' | 'on' | 'off';
 }
 
 // POST /v1/voice - Generate speech from text
@@ -18,7 +19,8 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
     const {
       text,
       voice_id = '21m00Tcm4TlvDq8ikWAM', // Default voice ID (Rachel)
-      kind = 'voice.default'
+      kind = 'voice.default',
+      apply_text_normalization
     } = req.body as VoiceRequestBody;
 
     // Validate request
@@ -52,7 +54,8 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
     const audioBuffer = await elevenLabsTextToSpeech({
       text,
       voice_id,
-      key: apiKey
+      key: apiKey,
+      apply_text_normalization
     });
 
     // Return audio as base64
