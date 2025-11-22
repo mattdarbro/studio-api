@@ -19,11 +19,11 @@
       },
       "chat.grok": {
         "provider": "grok",
-        "model": "grok-4-fast-reasoning"
+        "model": "grok-4-1-fast-reasoning"
       },
       "chat.grokLatest": {
         "provider": "grok",
-        "model": "grok-4-fast-reasoning"
+        "model": "grok-4-1-fast-reasoning"
       },
       "realtime.default": {
         "provider": "openai",
