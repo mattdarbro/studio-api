@@ -19,11 +19,11 @@
       },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251124"
+        "model": "claude-opus-4-5-20251101"
       },
       "chat.claudeOpus": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251124"
+        "model": "claude-opus-4-5-20251101"
       },
       "chat.claudeSonnet": {
         "provider": "anthropic",
@@ -93,11 +93,11 @@
       },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251124"
+        "model": "claude-opus-4-5-20251101"
       },
       "chat.claudeOpus": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251124"
+        "model": "claude-opus-4-5-20251101"
       },
       "chat.claudeSonnet": {
         "provider": "anthropic",
@@ -147,11 +147,11 @@
       },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-haiku-4-5-20251022"
+        "model": "claude-haiku-4-5-20251001"
       },
       "chat.claudeHaiku": {
         "provider": "anthropic",
-        "model": "claude-haiku-4-5-20251022"
+        "model": "claude-haiku-4-5-20251001"
       },
       "chat.grok": {
         "provider": "grok",
