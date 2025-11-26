@@ -5,7 +5,7 @@
  * Token prices are per 1,000 tokens.
  * Update these periodically as provider pricing changes.
  *
- * Last updated: 2025-01-08
+ * Last updated: 2025-11-26
  */
 
 export interface TokenPricing {
@@ -23,33 +23,42 @@ export interface MusicPricing {
 
 export const PRICING = {
   openai: {
-    // GPT-5 pricing (as of Jan 2025)
+    // GPT-5.1 pricing (as of Nov 2025)
+    'gpt-5.1': { input: 0.003, output: 0.012 } as TokenPricing,
+
+    // GPT-5 pricing
     'gpt-5': { input: 0.0025, output: 0.010 } as TokenPricing,
-    'gpt-5-preview': { input: 0.0025, output: 0.010 } as TokenPricing,
 
     // GPT-4o pricing
     'gpt-4o': { input: 0.0025, output: 0.010 } as TokenPricing,
     'gpt-4o-mini': { input: 0.00015, output: 0.0006 } as TokenPricing,
 
+    // o4-mini reasoning model
+    'o4-mini': { input: 0.0011, output: 0.0044 } as TokenPricing,
+
     // Realtime API
     'gpt-4o-realtime-preview': { input: 0.005, output: 0.020 } as TokenPricing,
-    'gpt-4o-realtime-preview-2024-10-01': { input: 0.005, output: 0.020 } as TokenPricing,
   },
 
   anthropic: {
+    // Claude Opus 4.5 (Nov 2025)
+    'claude-opus-4-5-20251124': { input: 0.005, output: 0.025 } as TokenPricing,
+
     // Claude Sonnet 4.5
     'claude-sonnet-4-5-20250929': { input: 0.003, output: 0.015 } as TokenPricing,
-    'claude-4.5-sonnet-preview': { input: 0.003, output: 0.015 } as TokenPricing,
 
-    // Claude Haiku
-    'claude-3-5-haiku-20241022': { input: 0.00025, output: 0.00125 } as TokenPricing,
+    // Claude Haiku 4.5
+    'claude-haiku-4-5-20251022': { input: 0.0008, output: 0.004 } as TokenPricing,
   },
 
   grok: {
-    // Grok pricing (xAI)
+    // Grok 4.1 pricing (xAI - Nov 2025)
+    'grok-4-1-fast-reasoning': { input: 0.0002, output: 0.0005 } as TokenPricing,
+    'grok-4-1-fast-non-reasoning': { input: 0.0002, output: 0.0005 } as TokenPricing,
+
+    // Legacy Grok models
     'grok-4-fast-reasoning': { input: 0.002, output: 0.010 } as TokenPricing,
     'grok-4-fast-nonreasoning': { input: 0.002, output: 0.010 } as TokenPricing,
-    'grok-3-beta': { input: 0.002, output: 0.010 } as TokenPricing,
   },
 
   replicate: {

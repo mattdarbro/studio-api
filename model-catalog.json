@@ -3,27 +3,39 @@
     "stable": {
       "chat.default": {
         "provider": "openai",
-        "model": "gpt-5"
+        "model": "gpt-5.1"
+      },
+      "chat.gpt51": {
+        "provider": "openai",
+        "model": "gpt-5.1"
       },
       "chat.gpt5": {
         "provider": "openai",
         "model": "gpt-5"
       },
+      "chat.o4mini": {
+        "provider": "openai",
+        "model": "o4-mini"
+      },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-sonnet-4-5-20250929"
+        "model": "claude-opus-4-5-20251124"
       },
-      "chat.claude45": {
+      "chat.claudeOpus": {
+        "provider": "anthropic",
+        "model": "claude-opus-4-5-20251124"
+      },
+      "chat.claudeSonnet": {
         "provider": "anthropic",
         "model": "claude-sonnet-4-5-20250929"
       },
       "chat.grok": {
         "provider": "grok",
-        "model": "grok-4-fast-reasoning"
+        "model": "grok-4-1-fast-reasoning"
       },
       "chat.grokLatest": {
         "provider": "grok",
-        "model": "grok-4-fast-reasoning"
+        "model": "grok-4-1-fast-reasoning"
       },
       "realtime.default": {
         "provider": "openai",
@@ -65,27 +77,39 @@
     "beta": {
       "chat.default": {
         "provider": "openai",
-        "model": "gpt-5-preview"
+        "model": "gpt-5.1"
+      },
+      "chat.gpt51": {
+        "provider": "openai",
+        "model": "gpt-5.1"
       },
       "chat.gpt5": {
         "provider": "openai",
-        "model": "gpt-5-preview"
+        "model": "gpt-5"
+      },
+      "chat.o4mini": {
+        "provider": "openai",
+        "model": "o4-mini"
       },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-4.5-sonnet-preview"
+        "model": "claude-opus-4-5-20251124"
       },
-      "chat.claude45": {
+      "chat.claudeOpus": {
         "provider": "anthropic",
-        "model": "claude-4.5-sonnet-preview"
+        "model": "claude-opus-4-5-20251124"
+      },
+      "chat.claudeSonnet": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5-20250929"
       },
       "chat.grok": {
         "provider": "grok",
-        "model": "grok-3-beta"
+        "model": "grok-4-1-fast-reasoning"
       },
       "chat.grokLatest": {
         "provider": "grok",
-        "model": "grok-3-beta"
+        "model": "grok-4-1-fast-reasoning"
       },
       "image.default": {
         "provider": "replicate",
@@ -117,13 +141,21 @@
         "provider": "openai",
         "model": "gpt-4o-mini"
       },
+      "chat.o4mini": {
+        "provider": "openai",
+        "model": "o4-mini"
+      },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-3-5-haiku-20241022"
+        "model": "claude-haiku-4-5-20251022"
+      },
+      "chat.claudeHaiku": {
+        "provider": "anthropic",
+        "model": "claude-haiku-4-5-20251022"
       },
       "chat.grok": {
         "provider": "grok",
-        "model": "grok-4-fast-nonreasoning"
+        "model": "grok-4-1-fast-non-reasoning"
       },
       "image.default": {
         "provider": "replicate",
@@ -154,7 +186,13 @@
   "deprecated": [
     "gpt-4",
     "gpt-4-turbo",
+    "gpt-5-preview",
     "claude-3-5-sonnet-20241022",
-    "grok-beta"
+    "claude-3-5-haiku-20241022",
+    "claude-4.5-sonnet-preview",
+    "grok-beta",
+    "grok-3-beta",
+    "grok-4-fast-reasoning",
+    "grok-4-fast-nonreasoning"
   ]
 }
