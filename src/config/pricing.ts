@@ -42,19 +42,19 @@ export const PRICING = {
 
   anthropic: {
     // Claude Opus 4.5 (Nov 2025)
-    'claude-opus-4-5-20251124': { input: 0.005, output: 0.025 } as TokenPricing,
+    'claude-opus-4-5-20251101': { input: 0.005, output: 0.025 } as TokenPricing,
 
     // Claude Sonnet 4.5
     'claude-sonnet-4-5-20250929': { input: 0.003, output: 0.015 } as TokenPricing,
 
     // Claude Haiku 4.5
-    'claude-haiku-4-5-20251022': { input: 0.0008, output: 0.004 } as TokenPricing,
+    'claude-haiku-4-5-20251001': { input: 0.0008, output: 0.004 } as TokenPricing,
   },
 
   grok: {
     // Grok 4.1 pricing (xAI - Nov 2025)
-    'grok-4-1-fast-reasoning': { input: 0.0002, output: 0.0005 } as TokenPricing,
-    'grok-4-1-fast-non-reasoning': { input: 0.0002, output: 0.0005 } as TokenPricing,
+    'grok-4.1-fast-reasoning': { input: 0.0002, output: 0.0005 } as TokenPricing,
+    'grok-4.1-fast-non-reasoning': { input: 0.0002, output: 0.0005 } as TokenPricing,
 
     // Legacy Grok models
     'grok-4-fast-reasoning': { input: 0.002, output: 0.010 } as TokenPricing,

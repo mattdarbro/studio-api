@@ -19,11 +19,11 @@
       },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251124"
+        "model": "claude-opus-4-5-20251101"
       },
       "chat.claudeOpus": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251124"
+        "model": "claude-opus-4-5-20251101"
       },
       "chat.claudeSonnet": {
         "provider": "anthropic",
@@ -31,11 +31,11 @@
       },
       "chat.grok": {
         "provider": "grok",
-        "model": "grok-4-1-fast-reasoning"
+        "model": "grok-4.1-fast-reasoning"
       },
       "chat.grokLatest": {
         "provider": "grok",
-        "model": "grok-4-1-fast-reasoning"
+        "model": "grok-4.1-fast-reasoning"
       },
       "realtime.default": {
         "provider": "openai",
@@ -93,11 +93,11 @@
       },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251124"
+        "model": "claude-opus-4-5-20251101"
       },
       "chat.claudeOpus": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251124"
+        "model": "claude-opus-4-5-20251101"
       },
       "chat.claudeSonnet": {
         "provider": "anthropic",
@@ -105,11 +105,11 @@
       },
       "chat.grok": {
         "provider": "grok",
-        "model": "grok-4-1-fast-reasoning"
+        "model": "grok-4.1-fast-reasoning"
       },
       "chat.grokLatest": {
         "provider": "grok",
-        "model": "grok-4-1-fast-reasoning"
+        "model": "grok-4.1-fast-reasoning"
       },
       "image.default": {
         "provider": "replicate",
@@ -147,15 +147,15 @@
       },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-haiku-4-5-20251022"
+        "model": "claude-haiku-4-5-20251001"
       },
       "chat.claudeHaiku": {
         "provider": "anthropic",
-        "model": "claude-haiku-4-5-20251022"
+        "model": "claude-haiku-4-5-20251001"
       },
       "chat.grok": {
         "provider": "grok",
-        "model": "grok-4-1-fast-non-reasoning"
+        "model": "grok-4.1-fast-non-reasoning"
       },
       "image.default": {
         "provider": "replicate",
