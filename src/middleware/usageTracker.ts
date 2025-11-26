@@ -88,9 +88,13 @@ export const usageTrackerMiddleware = (
         if (body && body.model) {
           model = body.model;
           // Infer provider from model name
-          if (model && model.startsWith('gpt')) provider = 'openai';
-          else if (model && model.startsWith('claude')) provider = 'anthropic';
-          else if (model && model.startsWith('grok')) provider = 'grok';
+          if (model && (model.startsWith('gpt') || model.startsWith('o1') || model.startsWith('o3') || model.startsWith('o4'))) {
+            provider = 'openai';
+          } else if (model && model.startsWith('claude')) {
+            provider = 'anthropic';
+          } else if (model && model.startsWith('grok')) {
+            provider = 'grok';
+          }
         }
 
         // Calculate cost
