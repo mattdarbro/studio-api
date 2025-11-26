@@ -31,11 +31,11 @@
       },
       "chat.grok": {
         "provider": "grok",
-        "model": "grok-4.1-fast-reasoning"
+        "model": "grok-4-1-fast-reasoning"
       },
       "chat.grokLatest": {
         "provider": "grok",
-        "model": "grok-4.1-fast-reasoning"
+        "model": "grok-4-1-fast-reasoning"
       },
       "realtime.default": {
         "provider": "openai",
@@ -105,11 +105,11 @@
       },
       "chat.grok": {
         "provider": "grok",
-        "model": "grok-4.1-fast-reasoning"
+        "model": "grok-4-1-fast-reasoning"
       },
       "chat.grokLatest": {
         "provider": "grok",
-        "model": "grok-4.1-fast-reasoning"
+        "model": "grok-4-1-fast-reasoning"
       },
       "image.default": {
         "provider": "replicate",
@@ -155,7 +155,7 @@
       },
       "chat.grok": {
         "provider": "grok",
-        "model": "grok-4.1-fast-non-reasoning"
+        "model": "grok-4-1-fast-non-reasoning"
       },
       "image.default": {
         "provider": "replicate",

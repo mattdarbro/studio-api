@@ -53,8 +53,8 @@ export const PRICING = {
 
   grok: {
     // Grok 4.1 pricing (xAI - Nov 2025)
-    'grok-4.1-fast-reasoning': { input: 0.0002, output: 0.0005 } as TokenPricing,
-    'grok-4.1-fast-non-reasoning': { input: 0.0002, output: 0.0005 } as TokenPricing,
+    'grok-4-1-fast-reasoning': { input: 0.0002, output: 0.0005 } as TokenPricing,
+    'grok-4-1-fast-non-reasoning': { input: 0.0002, output: 0.0005 } as TokenPricing,
 
     // Legacy Grok models
     'grok-4-fast-reasoning': { input: 0.002, output: 0.010 } as TokenPricing,
