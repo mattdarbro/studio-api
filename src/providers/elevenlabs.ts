@@ -1,6 +1,6 @@
-import fetch from 'node-fetch';
 import { logger } from '../logger';
 import { keepAliveAgent } from '../httpClient';
+import { fetchWithTimeout, TIMEOUTS } from '../utils/fetchWithTimeout';
 
 interface ElevenLabsMusicParams {
   prompt: string;
@@ -22,7 +22,7 @@ export async function elevenLabsGenerateMusic(params: ElevenLabsMusicParams): Pr
   logger.debug(`ElevenLabs generating music: "${prompt.substring(0, 50)}..." (${duration}s)`);
 
   // ElevenLabs Music Generation API endpoint
-  const response = await fetch('https://api.elevenlabs.io/v1/music-generation', {
+  const response = await fetchWithTimeout('https://api.elevenlabs.io/v1/music-generation', {
     method: 'POST',
     headers: {
       'xi-api-key': key,
@@ -33,7 +33,8 @@ export async function elevenLabsGenerateMusic(params: ElevenLabsMusicParams): Pr
       duration_seconds: duration,
       prompt_influence: 0.3
     }),
-    agent: keepAliveAgent
+    agent: keepAliveAgent,
+    timeout: TIMEOUTS.MUSIC
   });
 
   if (!response.ok) {
@@ -76,14 +77,15 @@ export async function elevenLabsTextToSpeech(params: {
     requestBody.apply_text_normalization = apply_text_normalization;
   }
 
-  const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
+  const response = await fetchWithTimeout(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
     method: 'POST',
     headers: {
       'xi-api-key': key,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(requestBody),
-    agent: keepAliveAgent
+    agent: keepAliveAgent,
+    timeout: TIMEOUTS.VOICE
   });
 
   if (!response.ok) {

@@ -1,6 +1,6 @@
-import fetch from 'node-fetch';
 import { logger } from '../logger';
 import { keepAliveAgent } from '../httpClient';
+import { fetchWithTimeout, TIMEOUTS } from '../utils/fetchWithTimeout';
 
 interface ChatMessage {
   role: string;
@@ -21,7 +21,7 @@ interface OpenAIRealtimeRequest {
 export async function openaiChat({ model, messages, key }: OpenAIChatRequest): Promise<any> {
   logger.debug(`OpenAI chat request with model: ${model}`);
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -31,7 +31,8 @@ export async function openaiChat({ model, messages, key }: OpenAIChatRequest): P
       model,
       messages
     }),
-    agent: keepAliveAgent
+    agent: keepAliveAgent,
+    timeout: TIMEOUTS.CHAT
   });
 
   if (!response.ok) {
@@ -48,7 +49,7 @@ export async function openaiChat({ model, messages, key }: OpenAIChatRequest): P
 export async function openaiRealtimeSession({ model, key }: OpenAIRealtimeRequest): Promise<any> {
   logger.debug(`OpenAI realtime session with model: ${model}`);
 
-  const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
+  const response = await fetchWithTimeout('https://api.openai.com/v1/realtime/sessions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -58,7 +59,8 @@ export async function openaiRealtimeSession({ model, key }: OpenAIRealtimeReques
       model,
       voice: 'alloy'
     }),
-    agent: keepAliveAgent
+    agent: keepAliveAgent,
+    timeout: TIMEOUTS.REALTIME
   });
 
   if (!response.ok) {

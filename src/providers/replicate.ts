@@ -1,6 +1,6 @@
-import fetch from 'node-fetch';
 import { logger } from '../logger';
 import { keepAliveAgent } from '../httpClient';
+import { fetchWithTimeout, TIMEOUTS } from '../utils/fetchWithTimeout';
 
 interface ReplicateImageParams {
   prompt: string;
@@ -44,13 +44,14 @@ async function resolveReplicateVersion(model: string, apiKey: string): Promise<s
   const url = `https://api.replicate.com/v1/models/${trimmed}`;
   logger.debug(`Resolving latest version for Replicate model: ${trimmed}`);
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     },
-    agent: keepAliveAgent
+    agent: keepAliveAgent,
+    timeout: TIMEOUTS.QUICK
   });
 
   if (!response.ok) {
@@ -85,7 +86,7 @@ export async function replicateCreatePrediction(params: ReplicateImageParams): P
 
   logger.debug(`Replicate request body prepared with version: ${version}`);
 
-  const response = await fetch('https://api.replicate.com/v1/predictions', {
+  const response = await fetchWithTimeout('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${key}`,
@@ -93,7 +94,8 @@ export async function replicateCreatePrediction(params: ReplicateImageParams): P
       'Prefer': 'wait'
     },
     body: JSON.stringify(requestBody),
-    agent: keepAliveAgent
+    agent: keepAliveAgent,
+    timeout: TIMEOUTS.IMAGE
   });
 
   if (!response.ok) {
@@ -109,11 +111,12 @@ export async function replicateCreatePrediction(params: ReplicateImageParams): P
 }
 
 export async function replicateGetPrediction(predictionId: string, key: string): Promise<ReplicatePrediction> {
-  const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+  const response = await fetchWithTimeout(`https://api.replicate.com/v1/predictions/${predictionId}`, {
     headers: {
       'Authorization': `Bearer ${key}`,
     },
-    agent: keepAliveAgent
+    agent: keepAliveAgent,
+    timeout: TIMEOUTS.QUICK
   });
 
   if (!response.ok) {

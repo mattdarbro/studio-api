@@ -1,6 +1,6 @@
-import fetch from 'node-fetch';
 import { logger } from '../logger';
 import { keepAliveAgent } from '../httpClient';
+import { fetchWithTimeout, TIMEOUTS } from '../utils/fetchWithTimeout';
 
 interface ChatMessage {
   role: string;
@@ -17,7 +17,7 @@ export async function grokChat({ model, messages, key }: GrokChatRequest): Promi
   logger.debug(`Grok chat request with model: ${model}`);
 
   // Grok (xAI) uses OpenAI-compatible API
-  const response = await fetch('https://api.x.ai/v1/chat/completions', {
+  const response = await fetchWithTimeout('https://api.x.ai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -27,7 +27,8 @@ export async function grokChat({ model, messages, key }: GrokChatRequest): Promi
       model,
       messages
     }),
-    agent: keepAliveAgent
+    agent: keepAliveAgent,
+    timeout: TIMEOUTS.CHAT
   });
 
   if (!response.ok) {
