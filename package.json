@@ -16,12 +16,14 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "abort-controller": "^3.0.0",
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "tiktoken": "^1.0.22"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

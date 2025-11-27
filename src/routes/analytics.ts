@@ -444,16 +444,26 @@ EXPLANATION: [Brief explanation]`;
       return;
     }
 
-    // Basic SQL validation - should start with a SQL keyword
-    const sqlKeywords = ['SELECT', 'WITH', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'ALTER'];
-    const startsWithKeyword = sqlKeywords.some(keyword => sql.toUpperCase().startsWith(keyword));
+    // SQL validation - ONLY allow SELECT queries (security critical)
+    // Block all mutation operations (INSERT, UPDATE, DELETE, DROP, etc.)
+    const sqlUpper = sql.toUpperCase().trim();
+    const allowedKeywords = ['SELECT', 'WITH']; // WITH is for CTEs (Common Table Expressions)
+    const dangerousKeywords = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'CREATE', 'TRUNCATE', 'REPLACE'];
 
-    if (!startsWithKeyword) {
-      logger.error('Extracted text does not appear to be SQL:', sql);
-      res.status(500).json({
-        error: 'Extracted text does not appear to be valid SQL',
-        extractedText: sql,
-        suggestion: 'The AI response could not be parsed correctly. Try rephrasing your question.'
+    // Check if query starts with allowed keywords
+    const startsWithAllowed = allowedKeywords.some(keyword => sqlUpper.startsWith(keyword));
+
+    // Check if query contains dangerous keywords anywhere (even in subqueries)
+    const containsDangerous = dangerousKeywords.some(keyword => sqlUpper.includes(keyword));
+
+    if (!startsWithAllowed || containsDangerous) {
+      logger.warn('Blocked potentially dangerous SQL query:', sql);
+      res.status(403).json({
+        error: 'SQL query validation failed',
+        reason: containsDangerous
+          ? 'Query contains forbidden mutation keywords (INSERT, UPDATE, DELETE, etc.)'
+          : 'Query must start with SELECT or WITH',
+        suggestion: 'Only read-only SELECT queries are allowed for security. Try rephrasing your question to query data instead of modifying it.'
       });
       return;
     }

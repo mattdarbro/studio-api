@@ -1,4 +1,7 @@
 {
+  "_comment": "Channels maintained for backward compatibility. All channels now use the same models except 'fast' which optimizes for cost/speed.",
+  "_migration_note": "Future versions will deprecate channels. Apps should use 'kind' only and expect consistent model routing.",
+
   "channels": {
     "stable": {
       "chat.default": {
@@ -75,6 +78,7 @@
       }
     },
     "beta": {
+      "_comment": "Beta channel now mirrors stable. Use stable instead.",
       "chat.default": {
         "provider": "openai",
         "model": "gpt-5.1"
@@ -111,9 +115,21 @@
         "provider": "grok",
         "model": "grok-4-1-fast-reasoning"
       },
+      "realtime.default": {
+        "provider": "openai",
+        "model": "gpt-4o-realtime-preview"
+      },
       "image.default": {
         "provider": "replicate",
+        "model": "black-forest-labs/flux-schnell"
+      },
+      "image.flux-dev": {
+        "provider": "replicate",
         "model": "black-forest-labs/flux-dev"
+      },
+      "image.flux-pro": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-pro"
       },
       "voice.default": {
         "provider": "elevenlabs",
@@ -137,6 +153,7 @@
       }
     },
     "fast": {
+      "_comment": "Fast channel uses cheaper/faster models optimized for cost and latency",
       "chat.default": {
         "provider": "openai",
         "model": "gpt-4o-mini"

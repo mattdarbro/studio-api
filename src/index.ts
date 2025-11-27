@@ -15,6 +15,7 @@ import analyticsRouter from './routes/analytics';
 import { logger } from './logger';
 import { flushPending } from './services/usage';
 import { closeDatabase } from './db/database';
+import { freeTokenEncoding } from './config/pricing';
 
 // Load environment variables
 dotenv.config();
@@ -137,6 +138,7 @@ process.on('SIGTERM', () => {
     logger.info('Server closed, flushing pending logs...');
     flushPending();
     closeDatabase();
+    freeTokenEncoding();
     logger.info('Cleanup complete');
     process.exit(0);
   });
@@ -148,6 +150,7 @@ process.on('SIGINT', () => {
     logger.info('Server closed, flushing pending logs...');
     flushPending();
     closeDatabase();
+    freeTokenEncoding();
     logger.info('Cleanup complete');
     process.exit(0);
   });

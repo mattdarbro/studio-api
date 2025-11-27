@@ -8,6 +8,8 @@
  * Last updated: 2025-11-26
  */
 
+import { get_encoding } from 'tiktoken';
+
 export interface TokenPricing {
   input: number;   // Cost per 1K input tokens (USD)
   output: number;  // Cost per 1K output tokens (USD)
@@ -148,12 +150,37 @@ export function calculateMusicCost(
   return 0;
 }
 
+// Cache the encoding to avoid repeated initialization
+let cachedEncoding: ReturnType<typeof get_encoding> | null = null;
+
 /**
- * Estimate token count from text (rough approximation)
- * Real token counting requires tiktoken library, but this is good enough for estimates
+ * Get token count using tiktoken (accurate tokenization)
+ * Uses cl100k_base encoding (GPT-4, GPT-3.5-turbo, text-embedding-ada-002)
  */
 export function estimateTokens(text: string): number {
-  // Rough estimate: ~4 characters per token for English text
-  // This is approximate - actual tokenization varies
-  return Math.ceil(text.length / 4);
+  if (!text) return 0;
+
+  try {
+    // Initialize encoding once and cache it
+    if (!cachedEncoding) {
+      cachedEncoding = get_encoding('cl100k_base');
+    }
+
+    const tokens = cachedEncoding.encode(text);
+    return tokens.length;
+  } catch (error) {
+    // Fallback to rough estimate if tiktoken fails
+    console.error('Tiktoken encoding failed, using fallback estimation:', error);
+    return Math.ceil(text.length / 4);
+  }
+}
+
+/**
+ * Free the tiktoken encoding resources (call on shutdown)
+ */
+export function freeTokenEncoding(): void {
+  if (cachedEncoding) {
+    cachedEncoding.free();
+    cachedEncoding = null;
+  }
 }

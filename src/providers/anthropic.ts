@@ -1,6 +1,6 @@
-import fetch from 'node-fetch';
 import { logger } from '../logger';
 import { keepAliveAgent } from '../httpClient';
+import { fetchWithTimeout, TIMEOUTS } from '../utils/fetchWithTimeout';
 
 interface ChatMessage {
   role: string;
@@ -45,7 +45,7 @@ export async function anthropicChat({ model, messages, key, max_tokens = 4096 }:
 
   logger.debug(`Anthropic request: ${anthropicMessages.length} messages`);
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -53,7 +53,8 @@ export async function anthropicChat({ model, messages, key, max_tokens = 4096 }:
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify(requestBody),
-    agent: keepAliveAgent
+    agent: keepAliveAgent,
+    timeout: TIMEOUTS.CHAT
   });
 
   if (!response.ok) {
