@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { logger } from './logger';
 import { validateSession } from './services/validation';
 
@@ -19,22 +20,52 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export const authMiddleware = (
-  req: AuthenticatedRequest,
+// JWT payload interface for type safety
+interface JWTPayload {
+  userId?: string;
+  sub?: string;
+  [key: string]: any;
+}
+
+/**
+ * Timing-safe string comparison to prevent timing attacks
+ * Returns true if strings are equal, false otherwise
+ */
+function timingSafeCompare(a: string | undefined, b: string | undefined): boolean {
+  if (!a || !b) return false;
+
+  // Convert to buffers for timing-safe comparison
+  const bufferA = Buffer.from(a, 'utf8');
+  const bufferB = Buffer.from(b, 'utf8');
+
+  // If lengths don't match, still do comparison to prevent timing leak
+  if (bufferA.length !== bufferB.length) {
+    // Compare against a dummy buffer of the same length as b to maintain constant time
+    crypto.timingSafeEqual(bufferB, bufferB);
+    return false;
+  }
+
+  return crypto.timingSafeEqual(bufferA, bufferB);
+}
+
+export const authMiddleware: RequestHandler = (
+  req: Request,
   res: Response,
   next: NextFunction
 ): void => {
+  const authReq = req as AuthenticatedRequest;
+
   try {
-    const sessionToken = req.headers['x-session-token'] as string | undefined;
-    const authHeader = req.headers.authorization;
-    const appKey = req.headers['x-app-key'] as string | undefined;
-    const appId = req.headers['x-app-id'] as string | undefined;
-    const channel = (req.headers['x-model-channel'] as string) || 'stable';
-    const userOpenAIKey = req.headers['x-user-openai-key'] as string | undefined;
-    const userReplicateKey = req.headers['x-user-replicate-key'] as string | undefined;
-    const userElevenLabsKey = req.headers['x-user-elevenlabs-key'] as string | undefined;
-    const userAnthropicKey = req.headers['x-user-anthropic-key'] as string | undefined;
-    const userGrokKey = req.headers['x-user-grok-key'] as string | undefined;
+    const sessionToken = authReq.headers['x-session-token'] as string | undefined;
+    const authHeader = authReq.headers.authorization;
+    const appKey = authReq.headers['x-app-key'] as string | undefined;
+    const appId = authReq.headers['x-app-id'] as string | undefined;
+    const channel = (authReq.headers['x-model-channel'] as string) || 'stable';
+    const userOpenAIKey = authReq.headers['x-user-openai-key'] as string | undefined;
+    const userReplicateKey = authReq.headers['x-user-replicate-key'] as string | undefined;
+    const userElevenLabsKey = authReq.headers['x-user-elevenlabs-key'] as string | undefined;
+    const userAnthropicKey = authReq.headers['x-user-anthropic-key'] as string | undefined;
+    const userGrokKey = authReq.headers['x-user-grok-key'] as string | undefined;
 
     // FAST PATH: Check for session token first (Map lookup - no crypto)
     if (sessionToken) {
@@ -42,10 +73,10 @@ export const authMiddleware = (
 
       if (sessionData) {
         // Session is valid - use session data
-        req.user = { id: sessionData.userId, type: sessionData.userType };
-        req.channel = sessionData.channel;
-        req.appId = sessionData.appId;
-        req.apiKeys = sessionData.apiKeys || {};
+        authReq.user = { id: sessionData.userId, type: sessionData.userType };
+        authReq.channel = sessionData.channel;
+        authReq.appId = sessionData.appId;
+        authReq.apiKeys = sessionData.apiKeys || {};
 
         logger.debug(`Session auth: user ${sessionData.userId}, appId: ${sessionData.appId || 'none'}, channel: ${sessionData.channel}`);
         next();
@@ -58,25 +89,25 @@ export const authMiddleware = (
     }
 
     // SLOW PATH: Fall back to traditional JWT/app-key authentication
-    req.channel = channel;
-    req.appId = appId;
+    authReq.channel = channel;
+    authReq.appId = appId;
 
     // Store user-provided API keys separately for each service
-    req.apiKeys = {};
+    authReq.apiKeys = {};
     if (userOpenAIKey) {
-      req.apiKeys.openai = userOpenAIKey;
+      authReq.apiKeys.openai = userOpenAIKey;
     }
     if (userReplicateKey) {
-      req.apiKeys.replicate = userReplicateKey;
+      authReq.apiKeys.replicate = userReplicateKey;
     }
     if (userElevenLabsKey) {
-      req.apiKeys.elevenlabs = userElevenLabsKey;
+      authReq.apiKeys.elevenlabs = userElevenLabsKey;
     }
     if (userAnthropicKey) {
-      req.apiKeys.anthropic = userAnthropicKey;
+      authReq.apiKeys.anthropic = userAnthropicKey;
     }
     if (userGrokKey) {
-      req.apiKeys.grok = userGrokKey;
+      authReq.apiKeys.grok = userGrokKey;
     }
 
     // Check for app key authentication
@@ -87,8 +118,9 @@ export const authMiddleware = (
         return;
       }
 
-      if (appKey === validAppKey) {
-        req.user = { id: 'app', type: 'app-key' };
+      // Use timing-safe comparison to prevent timing attacks
+      if (timingSafeCompare(appKey, validAppKey)) {
+        authReq.user = { id: 'app', type: 'app-key' };
         logger.debug(`Authenticated via app-key, appId: ${appId || 'none'}, channel: ${channel}`);
         next();
         return;
@@ -109,9 +141,10 @@ export const authMiddleware = (
       }
 
       try {
-        const decoded = jwt.verify(token, jwtSecret) as any;
-        req.user = decoded;
-        logger.debug(`Authenticated user: ${decoded.id || 'unknown'}, appId: ${appId || 'none'}, channel: ${channel}`);
+        const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
+        const userId = decoded.userId || decoded.sub || 'unknown';
+        authReq.user = { id: userId, ...decoded };
+        logger.debug(`Authenticated user: ${userId}, appId: ${appId || 'none'}, channel: ${channel}`);
         next();
         return;
       } catch (err) {

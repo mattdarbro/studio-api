@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { AuthenticatedRequest } from '../auth';
 import { logUsage } from '../services/usage';
 import { calculateTokenCost, calculateImageCost, calculateMusicCost, estimateTokens } from '../config/pricing';
@@ -15,40 +15,43 @@ interface TrackedResponse extends Response {
 /**
  * Middleware to track API usage, costs, and performance
  */
-export const usageTrackerMiddleware = (
-  req: AuthenticatedRequest,
-  res: TrackedResponse,
+export const usageTrackerMiddleware: RequestHandler = (
+  req: Request,
+  res: Response,
   next: NextFunction
 ): void => {
+  const authReq = req as AuthenticatedRequest;
+  const trackedRes = res as TrackedResponse;
+
   // Skip tracking for health checks and validation endpoints
-  if (req.path === '/health' || req.path.startsWith('/v1/validate')) {
+  if (authReq.path === '/health' || authReq.path.startsWith('/v1/validate')) {
     next();
     return;
   }
 
   // Record start time
   const startTime = Date.now();
-  res.__usageStartTime = startTime;
+  trackedRes.__usageStartTime = startTime;
 
   // Save original res.json and res.send methods
-  const originalJson = res.json.bind(res);
-  const originalSend = res.send.bind(res);
+  const originalJson = trackedRes.json.bind(trackedRes);
+  const originalSend = trackedRes.send.bind(trackedRes);
 
   // Track if we've already logged (prevent double-logging)
-  res.__usageTracked = false;
+  trackedRes.__usageTracked = false;
 
   /**
    * Helper function to log usage when response is sent
    */
   const trackUsage = (body: any, statusCode: number) => {
-    if (res.__usageTracked) return; // Already tracked
-    res.__usageTracked = true;
+    if (trackedRes.__usageTracked) return; // Already tracked
+    trackedRes.__usageTracked = true;
 
     const duration = Date.now() - startTime;
-    const userId = req.user?.id || 'anonymous';
-    const appId = req.appId || null;
-    const endpoint = req.path;
-    const method = req.method;
+    const userId = authReq.user?.id || 'anonymous';
+    const appId = authReq.appId || null;
+    const endpoint = authReq.path;
+    const method = authReq.method;
 
     // Extract provider and model info from request
     let provider: string | null = null;
@@ -67,7 +70,7 @@ export const usageTrackerMiddleware = (
     try {
       if (endpoint.startsWith('/v1/chat')) {
         // Chat endpoint - estimate tokens
-        const messages = req.body?.messages || [];
+        const messages = authReq.body?.messages || [];
         const messagesText = messages.map((m: any) => m.content || '').join(' ');
         inputTokens = estimateTokens(messagesText);
 
@@ -112,7 +115,7 @@ export const usageTrackerMiddleware = (
           model = 'black-forest-labs/flux-schnell'; // Default
         }
 
-        const numImages = req.body?.num_outputs || 1;
+        const numImages = authReq.body?.num_outputs || 1;
 
         if (model) {
           estimatedCost = Math.round(calculateImageCost('replicate', model, numImages) * 100);
@@ -122,7 +125,7 @@ export const usageTrackerMiddleware = (
         provider = 'elevenlabs';
         model = 'eleven_music';
 
-        const duration = req.body?.duration || 30;
+        const duration = authReq.body?.duration || 30;
         estimatedCost = Math.round(calculateMusicCost('elevenlabs', model, duration) * 100);
       } else if (endpoint.startsWith('/v1/ephemeral')) {
         // Realtime API
@@ -153,21 +156,21 @@ export const usageTrackerMiddleware = (
     });
   };
 
-  // Override res.json
-  res.json = function (body: any): Response {
-    trackUsage(body, res.statusCode);
+  // Override trackedRes.json
+  trackedRes.json = function (body: any): Response {
+    trackUsage(body, trackedRes.statusCode);
     return originalJson(body);
   };
 
-  // Override res.send
-  res.send = function (body: any): Response {
-    trackUsage(body, res.statusCode);
+  // Override trackedRes.send
+  trackedRes.send = function (body: any): Response {
+    trackUsage(body, trackedRes.statusCode);
     return originalSend(body);
   };
 
   // Also handle response finish event as fallback
-  res.on('finish', () => {
-    trackUsage(null, res.statusCode);
+  trackedRes.on('finish', () => {
+    trackUsage(null, trackedRes.statusCode);
   });
 
   next();
