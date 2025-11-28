@@ -246,6 +246,22 @@ export function clearAllLogs(): number {
 }
 
 /**
+ * Get database connection status (for health checks)
+ */
+export function getDatabaseStatus(): { connected: boolean; error?: string } {
+  try {
+    // Simple query to test database connectivity
+    const result = db.prepare('SELECT 1 as test').get();
+    return { connected: result !== undefined };
+  } catch (error: any) {
+    return {
+      connected: false,
+      error: error.message || 'Database connection failed'
+    };
+  }
+}
+
+/**
  * Close database connection (for graceful shutdown)
  */
 export function closeDatabase(): void {

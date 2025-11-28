@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { AuthenticatedRequest } from './auth';
 import { logger } from './logger';
 
@@ -12,13 +12,15 @@ const rateLimitMap = new Map<string, RateLimitEntry>();
 const REQUESTS_PER_MINUTE = 120;
 const WINDOW_MS = 60 * 1000; // 60 seconds
 
-export const rateLimitMiddleware = (
-  req: AuthenticatedRequest,
+export const rateLimitMiddleware: RequestHandler = (
+  req: Request,
   res: Response,
   next: NextFunction
 ): void => {
+  const authReq = req as AuthenticatedRequest;
+
   try {
-    const userId = req.user?.id || 'anonymous';
+    const userId = authReq.user?.id || 'anonymous';
     const now = Date.now();
 
     // Get or create rate limit entry

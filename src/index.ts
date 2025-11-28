@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { authMiddleware, AuthenticatedRequest } from './auth';
 import { rateLimitMiddleware } from './rateLimit';
 import { usageTrackerMiddleware } from './middleware/usageTracker';
+import { requestIdMiddleware } from './middleware/requestId';
 import { getCatalog } from './models';
 import chatRouter from './routes/chat';
 import ephemeralRouter from './routes/ephemeral';
@@ -46,6 +47,9 @@ logger.info(`Will bind to port: ${PORT}`);
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// Request ID middleware (for distributed tracing)
+app.use(requestIdMiddleware);
+
 // Request logging (debug level - too verbose for production)
 app.use((req, res, next) => {
   logger.debug(`${req.method} ${req.path}`);
@@ -61,15 +65,46 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Readiness endpoint - checks if app is ready to serve traffic
+app.get('/ready', (req, res) => {
+  try {
+    // Check database connection
+    const { getDatabaseStatus } = require('./db/database');
+    const dbStatus = getDatabaseStatus();
+
+    if (!dbStatus.connected) {
+      res.status(503).json({
+        status: 'not ready',
+        reason: 'Database not connected',
+        timestamp: new Date().toISOString()
+      });
+      return;
+    }
+
+    // All checks passed
+    res.json({
+      status: 'ready',
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'not ready',
+      error: 'Health check failed',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Validation endpoint (no auth required - this IS the auth step)
 app.use('/v1/validate', validateRouter);
 
 // Apply authentication and rate limiting to all routes
-app.use(authMiddleware as any);
-app.use(rateLimitMiddleware as any);
+app.use(authMiddleware);
+app.use(rateLimitMiddleware);
 
 // Apply usage tracking middleware (after auth, tracks all API calls)
-app.use(usageTrackerMiddleware as any);
+app.use(usageTrackerMiddleware);
 
 // Routes
 app.use('/v1/analytics', analyticsRouter);
