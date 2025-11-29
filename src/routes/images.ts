@@ -1,8 +1,11 @@
-import { Router, Response, RequestHandler } from 'express';
+import { Router, Request, Response, RequestHandler } from 'express';
 import { AuthenticatedRequest } from '../auth';
 import { resolveModel } from '../models';
 import { replicateCreatePrediction, replicateGetPrediction, replicateWaitForPrediction } from '../providers/replicate';
 import { logger } from '../logger';
+import { downloadImage, saveImage, generateImageId, getImagePath, imageExists } from '../services/imageStorage';
+import { insertHostedImage } from '../db/database';
+import fs from 'fs';
 
 const router = Router();
 
@@ -175,14 +178,57 @@ router.post('/generate', (async (req: AuthenticatedRequest, res: Response): Prom
       return;
     }
 
-    const url = Array.isArray(finalPrediction.output) ? finalPrediction.output[0] : finalPrediction.output;
+    const replicateUrl = Array.isArray(finalPrediction.output) ? finalPrediction.output[0] : finalPrediction.output;
 
-    if (!url) {
+    if (!replicateUrl) {
       res.status(500).json({ error: 'Image generation completed without output URL', prediction_id: finalPrediction.id });
       return;
     }
 
-    res.json({ url });
+    // Download and host image for stable URLs (solves CloudKit sync issues)
+    try {
+      const userId = req.user?.id || 'anonymous';
+      const imageId = generateImageId(finalPrediction.id);
+
+      // Download image from Replicate
+      const imageBuffer = await downloadImage(replicateUrl);
+
+      // Save to persistent storage
+      const hostedPath = await saveImage(imageBuffer, userId, imageId);
+
+      // Save metadata to database
+      const fullImagePath = getImagePath(userId, imageId.endsWith('.png') ? imageId : `${imageId}.png`);
+      insertHostedImage({
+        id: imageId,
+        userId,
+        replicatePredictionId: finalPrediction.id,
+        filePath: fullImagePath,
+        fileSize: imageBuffer.length,
+        contentType: 'image/png'
+      });
+
+      // Construct full hosted URL
+      const baseUrl = process.env.BASE_URL || `https://${req.headers.host}`;
+      const hostedUrl = `${baseUrl}${hostedPath}`;
+
+      logger.info(`Hosted image for user ${userId}: ${hostedUrl}`);
+
+      res.json({
+        url: hostedUrl,
+        replicate_url: replicateUrl,
+        size_bytes: imageBuffer.length,
+        hosted_at: new Date().toISOString(),
+        prediction_id: finalPrediction.id
+      });
+    } catch (hostingError: any) {
+      // If hosting fails, fall back to Replicate URL
+      logger.error('Image hosting failed, falling back to Replicate URL:', hostingError);
+      res.json({
+        url: replicateUrl,
+        hosting_error: hostingError.message,
+        prediction_id: finalPrediction.id
+      });
+    }
   } catch (error: any) {
     logger.error('Images generate error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
@@ -215,5 +261,49 @@ router.get('/:id', (async (req: AuthenticatedRequest, res: Response): Promise<vo
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }) as any);
+
+// GET /v1/images/hosted/:userId/:imageId - Serve hosted images
+router.get('/hosted/:userId/:imageId', (req: Request, res: Response): void => {
+  try {
+    const { userId, imageId } = req.params;
+
+    // Validate parameters
+    if (!userId || !imageId) {
+      res.status(400).json({ error: 'userId and imageId are required' });
+      return;
+    }
+
+    // Check if image exists
+    if (!imageExists(userId, imageId)) {
+      res.status(404).json({ error: 'Image not found' });
+      return;
+    }
+
+    // Get image path
+    const imagePath = getImagePath(userId, imageId);
+
+    // Set headers for image serving
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // Cache for 1 year
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Allow cross-origin access
+
+    // Stream the file
+    const stream = fs.createReadStream(imagePath);
+
+    stream.on('error', (error) => {
+      logger.error(`Error streaming image ${imagePath}:`, error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to stream image' });
+      }
+    });
+
+    stream.pipe(res);
+  } catch (error: any) {
+    logger.error('Hosted image serve error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+});
 
 export default router;

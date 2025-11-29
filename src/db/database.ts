@@ -51,6 +51,28 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_status_code ON usage_logs(status_code);
   `);
 
+  // Create hosted_images table for image hosting service
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS hosted_images (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      replicate_prediction_id TEXT,
+      file_path TEXT NOT NULL,
+      file_size INTEGER,
+      content_type TEXT DEFAULT 'image/png',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      accessed_at TEXT,
+      expires_at TEXT
+    )
+  `);
+
+  // Create indexes for hosted_images table
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_hosted_user_id ON hosted_images(user_id);
+    CREATE INDEX IF NOT EXISTS idx_hosted_created_at ON hosted_images(created_at);
+    CREATE INDEX IF NOT EXISTS idx_hosted_prediction_id ON hosted_images(replicate_prediction_id);
+  `);
+
   logger.info('Database schema initialized');
 }
 
@@ -259,6 +281,137 @@ export function getDatabaseStatus(): { connected: boolean; error?: string } {
       error: error.message || 'Database connection failed'
     };
   }
+}
+
+/**
+ * Hosted Images Database Operations
+ */
+
+export interface HostedImage {
+  id: string;
+  userId: string;
+  replicatePredictionId?: string;
+  filePath: string;
+  fileSize: number;
+  contentType: string;
+  createdAt: Date;
+  accessedAt?: Date;
+  expiresAt?: Date;
+}
+
+/**
+ * Insert a hosted image record
+ */
+export function insertHostedImage(image: {
+  id: string;
+  userId: string;
+  replicatePredictionId?: string;
+  filePath: string;
+  fileSize: number;
+  contentType?: string;
+}): void {
+  const stmt = db.prepare(`
+    INSERT INTO hosted_images (
+      id, user_id, replicate_prediction_id, file_path, file_size, content_type
+    ) VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    image.id,
+    image.userId,
+    image.replicatePredictionId || null,
+    image.filePath,
+    image.fileSize,
+    image.contentType || 'image/png'
+  );
+}
+
+/**
+ * Get a hosted image record by ID
+ */
+export function getHostedImage(id: string): HostedImage | null {
+  const stmt = db.prepare('SELECT * FROM hosted_images WHERE id = ?');
+  const row = stmt.get(id) as any;
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    userId: row.user_id,
+    replicatePredictionId: row.replicate_prediction_id,
+    filePath: row.file_path,
+    fileSize: row.file_size,
+    contentType: row.content_type,
+    createdAt: new Date(row.created_at),
+    accessedAt: row.accessed_at ? new Date(row.accessed_at) : undefined,
+    expiresAt: row.expires_at ? new Date(row.expires_at) : undefined
+  };
+}
+
+/**
+ * Update accessed_at timestamp for an image
+ */
+export function updateImageAccessTime(id: string): void {
+  const stmt = db.prepare('UPDATE hosted_images SET accessed_at = ? WHERE id = ?');
+  stmt.run(new Date().toISOString(), id);
+}
+
+/**
+ * Get all hosted images for a user
+ */
+export function getUserHostedImages(userId: string): HostedImage[] {
+  const stmt = db.prepare('SELECT * FROM hosted_images WHERE user_id = ? ORDER BY created_at DESC');
+  const rows = stmt.all(userId) as any[];
+
+  return rows.map(row => ({
+    id: row.id,
+    userId: row.user_id,
+    replicatePredictionId: row.replicate_prediction_id,
+    filePath: row.file_path,
+    fileSize: row.file_size,
+    contentType: row.content_type,
+    createdAt: new Date(row.created_at),
+    accessedAt: row.accessed_at ? new Date(row.accessed_at) : undefined,
+    expiresAt: row.expires_at ? new Date(row.expires_at) : undefined
+  }));
+}
+
+/**
+ * Delete a hosted image record
+ */
+export function deleteHostedImage(id: string): void {
+  const stmt = db.prepare('DELETE FROM hosted_images WHERE id = ?');
+  stmt.run(id);
+}
+
+/**
+ * Delete hosted images older than specified date
+ */
+export function deleteOldHostedImages(olderThan: Date): number {
+  const stmt = db.prepare('DELETE FROM hosted_images WHERE created_at < ?');
+  const result = stmt.run(olderThan.toISOString());
+  return result.changes;
+}
+
+/**
+ * Get hosted image statistics
+ */
+export function getHostedImageStats(): {
+  totalImages: number;
+  totalSizeBytes: number;
+  userCount: number;
+} {
+  const totalImages = db.prepare('SELECT COUNT(*) as count FROM hosted_images').get() as any;
+  const totalSize = db.prepare('SELECT COALESCE(SUM(file_size), 0) as size FROM hosted_images').get() as any;
+  const userCount = db.prepare('SELECT COUNT(DISTINCT user_id) as count FROM hosted_images').get() as any;
+
+  return {
+    totalImages: totalImages.count,
+    totalSizeBytes: totalSize.size,
+    userCount: userCount.count
+  };
 }
 
 /**
