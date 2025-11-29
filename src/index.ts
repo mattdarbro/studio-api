@@ -5,6 +5,7 @@ import { authMiddleware, AuthenticatedRequest } from './auth';
 import { rateLimitMiddleware } from './rateLimit';
 import { usageTrackerMiddleware } from './middleware/usageTracker';
 import { requestIdMiddleware } from './middleware/requestId';
+import { costLimitMiddleware } from './middleware/costLimitMiddleware';
 import { getCatalog } from './models';
 import chatRouter from './routes/chat';
 import ephemeralRouter from './routes/ephemeral';
@@ -102,6 +103,9 @@ app.use('/v1/validate', validateRouter);
 // Apply authentication and rate limiting to all routes
 app.use(authMiddleware);
 app.use(rateLimitMiddleware);
+
+// Apply cost limit checking (prevent runaway spending)
+app.use(costLimitMiddleware);
 
 // Apply usage tracking middleware (after auth, tracks all API calls)
 app.use(usageTrackerMiddleware);

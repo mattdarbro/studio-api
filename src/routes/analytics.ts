@@ -3,6 +3,8 @@ import { queryUsage, calculateStats, getLogCount, getAllLogs } from '../services
 import { executeQuery } from '../db/database';
 import { logger } from '../logger';
 import fetch from 'node-fetch';
+import { getCostStatus } from '../services/costLimits';
+import { AuthenticatedRequest } from '../auth';
 
 const router = Router();
 
@@ -495,6 +497,35 @@ EXPLANATION: [Brief explanation]`;
   } catch (error: any) {
     logger.error('Analytics chat error:', error);
     res.status(500).json({ error: 'Failed to process chat request', details: error.message });
+  }
+});
+
+/**
+ * GET /v1/analytics/cost-status
+ * Get current cost spending status for the authenticated user
+ * Shows daily, weekly, and monthly spending with limits
+ */
+router.get('/cost-status', (req: Request, res: Response) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
+    if (!userId || userId === 'anonymous') {
+      res.status(400).json({ error: 'User ID required for cost tracking' });
+      return;
+    }
+
+    const costStatus = getCostStatus(userId);
+
+    res.json({
+      userId,
+      currency: 'USD',
+      ...costStatus,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    logger.error('Cost status error:', error);
+    res.status(500).json({ error: 'Failed to retrieve cost status', details: error.message });
   }
 });
 
