@@ -1,4 +1,5 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction, Router } from 'express';
+import fs from 'fs';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { authMiddleware, AuthenticatedRequest } from './auth';
@@ -15,6 +16,7 @@ import voiceRouter from './routes/voice';
 import validateRouter from './routes/validate';
 import analyticsRouter from './routes/analytics';
 import { logger } from './logger';
+import { getImagePath, imageExists } from './services/imageStorage';
 import { flushPending } from './services/usage';
 import { closeDatabase } from './db/database';
 import { freeTokenEncoding } from './config/pricing';
@@ -99,6 +101,40 @@ app.get('/ready', (req, res) => {
 
 // Validation endpoint (no auth required - this IS the auth step)
 app.use('/v1/validate', validateRouter);
+
+// Public hosted images endpoint (no auth required - images need to be publicly accessible)
+const publicImagesRouter = Router();
+publicImagesRouter.get('/hosted/:userId/:imageId', (req, res) => {
+  try {
+    const { userId, imageId } = req.params;
+    if (!userId || !imageId) {
+      res.status(400).json({ error: 'userId and imageId are required' });
+      return;
+    }
+    if (!imageExists(userId, imageId)) {
+      res.status(404).json({ error: 'Image not found' });
+      return;
+    }
+    const imagePath = getImagePath(userId, imageId);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    const stream = fs.createReadStream(imagePath);
+    stream.on('error', (error) => {
+      logger.error(`Error streaming image ${imagePath}:`, error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to stream image' });
+      }
+    });
+    stream.pipe(res);
+  } catch (error: any) {
+    logger.error('Hosted image serve error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+});
+app.use('/v1/images', publicImagesRouter);
 
 // Apply authentication and rate limiting to all routes
 app.use(authMiddleware);
