@@ -432,6 +432,9 @@ Generate speech from text using ElevenLabs or OpenAI
   - `voice.multilingual` - ElevenLabs Multilingual v2
 - `apply_text_normalization` (optional, ElevenLabs only): Controls text normalization. Options: `'auto'` (default - ElevenLabs decides), `'on'` (always normalize numbers, dates, etc.), `'off'` (no normalization). Note: For `eleven_turbo_v2_5` and `eleven_flash_v2_5` models, normalization requires an Enterprise plan.
 
+**Query Parameters:**
+- `stream` (optional): Set to `true` to stream audio directly (OpenAI only). Returns `audio/mpeg` instead of JSON. Reduces latency significantly.
+
 **Available ElevenLabs Voice IDs:**
 - `21m00Tcm4TlvDq8ikWAM` - Rachel (default, warm female voice)
 - `AZnzlk1XvdvUeBnXmlld` - Domi (strong female voice)
@@ -488,7 +491,7 @@ curl -X POST https://studio-api-production-3deb.up.railway.app/v1/voice \
   }'
 ```
 
-**Example (OpenAI):**
+**Example (OpenAI - JSON Response):**
 ```bash
 curl -X POST https://studio-api-production-3deb.up.railway.app/v1/voice \
   -H "Content-Type: application/json" \
@@ -500,9 +503,22 @@ curl -X POST https://studio-api-production-3deb.up.railway.app/v1/voice \
   }'
 ```
 
-**Usage in JavaScript:**
+**Example (OpenAI - Streaming, Lower Latency):**
+```bash
+curl -X POST "https://studio-api-production-3deb.up.railway.app/v1/voice?stream=true" \
+  -H "Content-Type: application/json" \
+  -H "x-app-key: YOUR_APP_KEY" \
+  -d '{
+    "text": "Welcome to Studio API. This is OpenAI streaming text to speech.",
+    "voice": "nova",
+    "kind": "voice.openai-hd"
+  }' \
+  --output speech.mp3
+```
+
+**Usage in JavaScript (Non-Streaming):**
 ```javascript
-// Generate speech with OpenAI
+// Generate speech with OpenAI (returns JSON with base64 audio)
 const response = await fetch('https://studio-api-production-3deb.up.railway.app/v1/voice', {
   method: 'POST',
   headers: {
@@ -520,6 +536,30 @@ const { audio_base64 } = await response.json();
 
 // Play the audio
 const audio = new Audio(`data:audio/mp3;base64,${audio_base64}`);
+audio.play();
+```
+
+**Usage in JavaScript (Streaming, Faster):**
+```javascript
+// Generate speech with OpenAI streaming (returns audio/mpeg directly)
+const response = await fetch('https://studio-api-production-3deb.up.railway.app/v1/voice?stream=true', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-session-token': sessionToken,
+  },
+  body: JSON.stringify({
+    text: 'Hello world with streaming!',
+    voice: 'alloy',
+    kind: 'voice.openai'
+  })
+});
+
+// Get audio blob
+const audioBlob = await response.blob();
+
+// Play the audio
+const audio = new Audio(URL.createObjectURL(audioBlob));
 audio.play();
 ```
 
@@ -1376,6 +1416,7 @@ struct ImageResponse: Codable {
 
 ```swift
 extension StudioAPIClient {
+    // Non-streaming version (returns JSON with base64 audio)
     func generateSpeech(text: String, voice: String = "alloy", kind: String = "voice.openai") async throws -> Data {
         let token = try await getSessionToken()
 
@@ -1396,6 +1437,25 @@ extension StudioAPIClient {
         }
 
         return audioData
+    }
+
+    // Streaming version (faster, lower latency - returns audio/mpeg directly)
+    func generateSpeechStreaming(text: String, voice: String = "alloy", kind: String = "voice.openai") async throws -> Data {
+        let token = try await getSessionToken()
+
+        var urlComponents = URLComponents(string: "\(baseURL)/v1/voice")!
+        urlComponents.queryItems = [URLQueryItem(name: "stream", value: "true")]
+
+        var request = URLRequest(url: urlComponents.url!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(token, forHTTPHeaderField: "x-session-token")
+
+        let body = VoiceRequest(text: text, voice: voice, kind: kind)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return data
     }
 
     // Play audio helper
@@ -1555,11 +1615,14 @@ let response = try await client.chat(messages: messages, kind: "chat.o4mini")
 // High quality responses
 let response = try await client.chat(messages: messages, kind: "chat.claude")
 
-// Fast TTS (OpenAI)
+// Fast TTS (OpenAI) - Non-streaming
 let audio = try await client.generateSpeech(text: text, voice: "alloy", kind: "voice.openai")
 
-// High quality TTS (OpenAI HD)
-let audio = try await client.generateSpeech(text: text, voice: "nova", kind: "voice.openai-hd")
+// Fast TTS (OpenAI) - Streaming for lower latency
+let audio = try await client.generateSpeechStreaming(text: text, voice: "alloy", kind: "voice.openai")
+
+// High quality TTS (OpenAI HD) - Streaming
+let audio = try await client.generateSpeechStreaming(text: text, voice: "nova", kind: "voice.openai-hd")
 
 // Fast image generation
 let url = try await client.generateImage(prompt: prompt, style: "photorealistic")
@@ -1636,12 +1699,15 @@ class AIViewModel: ObservableObject {
         isLoading = false
     }
 
-    func generateSpeech(_ text: String) async {
+    func generateSpeech(_ text: String, streaming: Bool = true) async {
         isLoading = true
         errorMessage = nil
 
         do {
-            let audioData = try await client.generateSpeech(text: text, voice: "alloy", kind: "voice.openai")
+            // Use streaming for lower latency
+            let audioData = streaming
+                ? try await client.generateSpeechStreaming(text: text, voice: "alloy", kind: "voice.openai")
+                : try await client.generateSpeech(text: text, voice: "alloy", kind: "voice.openai")
             try client.playAudio(data: audioData)
         } catch {
             errorMessage = error.localizedDescription

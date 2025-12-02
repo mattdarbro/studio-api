@@ -2,7 +2,7 @@ import { Router, Response, RequestHandler } from 'express';
 import { AuthenticatedRequest } from '../auth';
 import { resolveModel } from '../models';
 import { elevenLabsTextToSpeech } from '../providers/elevenlabs';
-import { openaiTextToSpeech } from '../providers/openai';
+import { openaiTextToSpeech, openaiTextToSpeechStream } from '../providers/openai';
 import { logger } from '../logger';
 
 const router = Router();
@@ -25,6 +25,9 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
       kind = 'voice.default',
       apply_text_normalization
     } = req.body as VoiceRequestBody;
+
+    // Check if streaming is requested via query parameter
+    const stream = req.query.stream === 'true';
 
     // Validate request
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
@@ -52,6 +55,28 @@ router.post('/', (async (req: AuthenticatedRequest, res: Response): Promise<void
         return;
       }
 
+      // If streaming is requested, stream the audio directly
+      if (stream) {
+        const streamResponse = await openaiTextToSpeechStream({
+          model: modelConfig.model,
+          text,
+          voice,
+          key: apiKey
+        });
+
+        // Set headers for audio streaming
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Transfer-Encoding', 'chunked');
+        res.setHeader('X-Provider', 'openai');
+        res.setHeader('X-Model', modelConfig.model);
+        res.setHeader('X-Voice', voice);
+
+        // Pipe the response body to the client
+        streamResponse.body.pipe(res);
+        return;
+      }
+
+      // Non-streaming: return base64 JSON
       audioBuffer = await openaiTextToSpeech({
         model: modelConfig.model,
         text,
