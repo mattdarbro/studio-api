@@ -8,7 +8,7 @@ Studio API (Lucid) is a centralized LLM provider gateway that manages model rout
 
 ## Supported Providers
 
-- ✅ **OpenAI** - Chat completions, realtime API
+- ✅ **OpenAI** - Chat completions, realtime API, text-to-speech (TTS)
 - ✅ **Replicate** - Image generation (Flux models)
 - ✅ **ElevenLabs** - Music generation, text-to-speech (voice synthesis)
 - ✅ **Anthropic** - Claude models (via chat endpoint)
@@ -392,14 +392,15 @@ curl -X POST https://studio-api-production-3deb.up.railway.app/v1/music \
 ```
 
 ### POST /v1/voice
-Generate speech from text using ElevenLabs
+Generate speech from text using ElevenLabs or OpenAI
 
 **Headers:**
 - `x-app-key` or `Authorization: Bearer <token>` (required)
 - `x-model-channel` (optional, default: "stable")
-- `x-user-elevenlabs-key` (optional, user's own API key)
+- `x-user-elevenlabs-key` (optional, user's own ElevenLabs API key)
+- `x-user-openai-key` (optional, user's own OpenAI API key)
 
-**Request Body:**
+**Request Body (ElevenLabs):**
 ```json
 {
   "text": "Hello, this is a test of text to speech.",
@@ -409,13 +410,29 @@ Generate speech from text using ElevenLabs
 }
 ```
 
+**Request Body (OpenAI):**
+```json
+{
+  "text": "Hello, this is OpenAI text to speech.",
+  "voice": "alloy",
+  "kind": "voice.openai"
+}
+```
+
 **Parameters:**
 - `text` (required): Text to convert to speech (max 5000 characters)
-- `voice_id` (optional): ElevenLabs voice ID (default: "21m00Tcm4TlvDq8ikWAM" - Rachel)
+- `voice_id` (optional): ElevenLabs voice ID (default: "21m00Tcm4TlvDq8ikWAM" - Rachel) - for ElevenLabs only
+- `voice` (optional): OpenAI voice name (default: "alloy") - for OpenAI only
 - `kind` (optional): Model kind (default: "voice.default")
-- `apply_text_normalization` (optional): Controls text normalization. Options: `'auto'` (default - ElevenLabs decides), `'on'` (always normalize numbers, dates, etc.), `'off'` (no normalization). Note: For `eleven_turbo_v2_5` and `eleven_flash_v2_5` models, normalization requires an Enterprise plan.
+  - `voice.default` - ElevenLabs Turbo v2.5
+  - `voice.openai` - OpenAI TTS-1 (standard quality)
+  - `voice.openai-hd` - OpenAI TTS-1-HD (high quality)
+  - `voice.flash` - ElevenLabs Flash v2.5 (fastest)
+  - `voice.turbo` - ElevenLabs Turbo v2.5
+  - `voice.multilingual` - ElevenLabs Multilingual v2
+- `apply_text_normalization` (optional, ElevenLabs only): Controls text normalization. Options: `'auto'` (default - ElevenLabs decides), `'on'` (always normalize numbers, dates, etc.), `'off'` (no normalization). Note: For `eleven_turbo_v2_5` and `eleven_flash_v2_5` models, normalization requires an Enterprise plan.
 
-**Available Voice IDs:**
+**Available ElevenLabs Voice IDs:**
 - `21m00Tcm4TlvDq8ikWAM` - Rachel (default, warm female voice)
 - `AZnzlk1XvdvUeBnXmlld` - Domi (strong female voice)
 - `EXAVITQu4vr4xnSDxMaL` - Bella (soft female voice)
@@ -426,17 +443,39 @@ Generate speech from text using ElevenLabs
 - `pNInz6obpgDQGcFmaJgB` - Adam (deep male voice)
 - `yoZ06aMxZJJ28mfd3POQ` - Sam (raspy male voice)
 
-**Response:**
+**Available OpenAI Voices:**
+- `alloy` - Neutral, balanced voice
+- `echo` - Male voice
+- `fable` - Expressive voice
+- `onyx` - Deep male voice
+- `nova` - Female voice
+- `shimmer` - Soft female voice
+
+**Response (ElevenLabs):**
 ```json
 {
   "audio_base64": "base64-encoded-audio-data",
   "format": "mp3",
   "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "provider": "elevenlabs",
+  "model": "eleven_turbo_v2_5",
   "text_length": 42
 }
 ```
 
-**Example:**
+**Response (OpenAI):**
+```json
+{
+  "audio_base64": "base64-encoded-audio-data",
+  "format": "mp3",
+  "voice": "alloy",
+  "provider": "openai",
+  "model": "tts-1",
+  "text_length": 35
+}
+```
+
+**Example (ElevenLabs):**
 ```bash
 curl -X POST https://studio-api-production-3deb.up.railway.app/v1/voice \
   -H "Content-Type: application/json" \
@@ -449,9 +488,21 @@ curl -X POST https://studio-api-production-3deb.up.railway.app/v1/voice \
   }'
 ```
 
+**Example (OpenAI):**
+```bash
+curl -X POST https://studio-api-production-3deb.up.railway.app/v1/voice \
+  -H "Content-Type: application/json" \
+  -H "x-app-key: YOUR_APP_KEY" \
+  -d '{
+    "text": "Welcome to Studio API. This is OpenAI text to speech.",
+    "voice": "nova",
+    "kind": "voice.openai-hd"
+  }'
+```
+
 **Usage in JavaScript:**
 ```javascript
-// Generate speech
+// Generate speech with OpenAI
 const response = await fetch('https://studio-api-production-3deb.up.railway.app/v1/voice', {
   method: 'POST',
   headers: {
@@ -460,8 +511,8 @@ const response = await fetch('https://studio-api-production-3deb.up.railway.app/
   },
   body: JSON.stringify({
     text: 'Hello world!',
-    voice_id: '21m00Tcm4TlvDq8ikWAM',
-    apply_text_normalization: 'on'  // Optional: normalize text (e.g., spell out numbers)
+    voice: 'alloy',
+    kind: 'voice.openai'
   })
 });
 
@@ -496,10 +547,12 @@ Available model kinds (configurable in `model-catalog.json`):
 - `music.default` - Music generation (ElevenLabs)
 
 **Voice:**
-- `voice.default` - Standard voice synthesis (Turbo v2.5)
-- `voice.flash` - Fastest voice synthesis (Flash v2.5)
-- `voice.turbo` - High quality voice (Turbo v2.5)
-- `voice.multilingual` - Multilingual voice support (v2)
+- `voice.default` - Standard voice synthesis (ElevenLabs Turbo v2.5)
+- `voice.openai` - OpenAI TTS-1 (standard quality, faster)
+- `voice.openai-hd` - OpenAI TTS-1-HD (high quality)
+- `voice.flash` - Fastest voice synthesis (ElevenLabs Flash v2.5)
+- `voice.turbo` - High quality voice (ElevenLabs Turbo v2.5)
+- `voice.multilingual` - Multilingual voice support (ElevenLabs v2)
 
 ## Rate Limiting
 
@@ -1193,6 +1246,526 @@ If you create a useful guide, consider contributing it back:
 3. Update this section with a link
 4. Submit a pull request
 5. Include examples and test cases
+
+## iOS App Integration Guide
+
+### Overview
+
+Studio API provides a centralized gateway for iOS apps to access multiple AI services through a single, consistent API. This section provides iOS-specific integration patterns and best practices.
+
+### Quick Start for iOS
+
+**1. Create a Studio API Client**
+
+```swift
+import Foundation
+
+class StudioAPIClient {
+    private let baseURL = "https://studio-api-production-3deb.up.railway.app"
+    private let appKey: String
+    private var sessionToken: String?
+    private var sessionExpiry: Date?
+
+    init(appKey: String) {
+        self.appKey = appKey
+    }
+
+    // Get or refresh session token
+    func getSessionToken() async throws -> String {
+        if let token = sessionToken, let expiry = sessionExpiry, expiry > Date() {
+            return token
+        }
+
+        var request = URLRequest(url: URL(string: "\(baseURL)/v1/validate")!)
+        request.httpMethod = "POST"
+        request.setValue(appKey, forHTTPHeaderField: "x-app-key")
+        request.setValue("stable", forHTTPHeaderField: "x-model-channel")
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(SessionResponse.self, from: data)
+
+        self.sessionToken = response.sessionToken
+        self.sessionExpiry = Date().addingTimeInterval(Double(response.expiresIn))
+
+        return response.sessionToken
+    }
+}
+
+struct SessionResponse: Codable {
+    let sessionToken: String
+    let expiresIn: Int
+    let userId: String
+    let channel: String
+}
+```
+
+**2. Implement Chat Completions**
+
+```swift
+extension StudioAPIClient {
+    func chat(messages: [ChatMessage], kind: String = "chat.default") async throws -> ChatResponse {
+        let token = try await getSessionToken()
+
+        var request = URLRequest(url: URL(string: "\(baseURL)/v1/chat")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(token, forHTTPHeaderField: "x-session-token")
+
+        let body = ChatRequest(messages: messages, kind: kind)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return try JSONDecoder().decode(ChatResponse.self, from: data)
+    }
+}
+
+struct ChatMessage: Codable {
+    let role: String
+    let content: String
+}
+
+struct ChatRequest: Codable {
+    let messages: [ChatMessage]
+    let kind: String
+}
+
+struct ChatResponse: Codable {
+    let choices: [Choice]
+
+    struct Choice: Codable {
+        let message: ChatMessage
+    }
+}
+```
+
+**3. Implement Image Generation**
+
+```swift
+extension StudioAPIClient {
+    func generateImage(prompt: String, width: Int = 1024, height: Int = 1024, style: String = "photorealistic") async throws -> String {
+        let token = try await getSessionToken()
+
+        var request = URLRequest(url: URL(string: "\(baseURL)/v1/images/generate")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(token, forHTTPHeaderField: "x-session-token")
+
+        let body = ImageRequest(prompt: prompt, width: width, height: height, style: style)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ImageResponse.self, from: data)
+
+        return response.url
+    }
+}
+
+struct ImageRequest: Codable {
+    let prompt: String
+    let width: Int
+    let height: Int
+    let style: String
+}
+
+struct ImageResponse: Codable {
+    let url: String
+}
+```
+
+**4. Implement Text-to-Speech (OpenAI)**
+
+```swift
+extension StudioAPIClient {
+    func generateSpeech(text: String, voice: String = "alloy", kind: String = "voice.openai") async throws -> Data {
+        let token = try await getSessionToken()
+
+        var request = URLRequest(url: URL(string: "\(baseURL)/v1/voice")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(token, forHTTPHeaderField: "x-session-token")
+
+        let body = VoiceRequest(text: text, voice: voice, kind: kind)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(VoiceResponse.self, from: data)
+
+        // Decode base64 audio
+        guard let audioData = Data(base64Encoded: response.audioBase64) else {
+            throw NSError(domain: "StudioAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to decode audio"])
+        }
+
+        return audioData
+    }
+
+    // Play audio helper
+    func playAudio(data: Data) throws {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("tts.mp3")
+        try data.write(to: tempURL)
+
+        let player = try AVAudioPlayer(contentsOf: tempURL)
+        player.play()
+    }
+}
+
+struct VoiceRequest: Codable {
+    let text: String
+    let voice: String
+    let kind: String
+}
+
+struct VoiceResponse: Codable {
+    let audioBase64: String
+    let format: String
+    let voice: String
+    let provider: String
+    let model: String
+    let textLength: Int
+
+    enum CodingKeys: String, CodingKey {
+        case audioBase64 = "audio_base64"
+        case format
+        case voice
+        case provider
+        case model
+        case textLength = "text_length"
+    }
+}
+```
+
+**5. Implement Music Generation**
+
+```swift
+extension StudioAPIClient {
+    func generateMusic(prompt: String, duration: Int = 30) async throws -> Data {
+        let token = try await getSessionToken()
+
+        var request = URLRequest(url: URL(string: "\(baseURL)/v1/music")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(token, forHTTPHeaderField: "x-session-token")
+
+        let body = MusicRequest(prompt: prompt, duration: duration, kind: "music.default")
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(MusicResponse.self, from: data)
+
+        // Decode base64 audio
+        guard let audioData = Data(base64Encoded: response.audioBase64) else {
+            throw NSError(domain: "StudioAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to decode audio"])
+        }
+
+        return audioData
+    }
+}
+
+struct MusicRequest: Codable {
+    let prompt: String
+    let duration: Int
+    let kind: String
+}
+
+struct MusicResponse: Codable {
+    let audioBase64: String?
+    let generationId: String
+    let status: String
+
+    enum CodingKeys: String, CodingKey {
+        case audioBase64 = "audio_base64"
+        case generationId = "generation_id"
+        case status
+    }
+}
+```
+
+### Best Practices for iOS
+
+**1. Session Token Management**
+
+- Create session token at app startup
+- Store in memory (not persistent storage for security)
+- Refresh proactively every 10 minutes
+- Handle 401 errors by requesting new session
+
+```swift
+class SessionManager {
+    private let client: StudioAPIClient
+    private var refreshTimer: Timer?
+
+    func startSessionRefresh() {
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
+            Task {
+                try? await self?.client.getSessionToken()
+            }
+        }
+    }
+
+    func stopSessionRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+}
+```
+
+**2. Error Handling**
+
+```swift
+enum StudioAPIError: Error {
+    case sessionExpired
+    case rateLimitExceeded
+    case invalidRequest(String)
+    case serverError(String)
+}
+
+extension StudioAPIClient {
+    func handleError(_ response: HTTPURLResponse, data: Data) throws {
+        switch response.statusCode {
+        case 401:
+            throw StudioAPIError.sessionExpired
+        case 429:
+            throw StudioAPIError.rateLimitExceeded
+        case 400:
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw StudioAPIError.invalidRequest(errorResponse.error)
+            }
+        case 500:
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw StudioAPIError.serverError(errorResponse.error)
+            }
+        default:
+            break
+        }
+    }
+}
+
+struct ErrorResponse: Codable {
+    let error: String
+}
+```
+
+**3. Model Selection**
+
+Choose appropriate models for your use case:
+
+```swift
+// Fast responses, lower cost
+let response = try await client.chat(messages: messages, kind: "chat.o4mini")
+
+// High quality responses
+let response = try await client.chat(messages: messages, kind: "chat.claude")
+
+// Fast TTS (OpenAI)
+let audio = try await client.generateSpeech(text: text, voice: "alloy", kind: "voice.openai")
+
+// High quality TTS (OpenAI HD)
+let audio = try await client.generateSpeech(text: text, voice: "nova", kind: "voice.openai-hd")
+
+// Fast image generation
+let url = try await client.generateImage(prompt: prompt, style: "photorealistic")
+```
+
+**4. User Provided API Keys (Optional)**
+
+Allow users to provide their own API keys:
+
+```swift
+extension StudioAPIClient {
+    func setUserAPIKey(_ key: String, for provider: String) {
+        // Store in session token request or individual API calls
+        // Example for OpenAI:
+        var request = URLRequest(url: URL(string: "\(baseURL)/v1/voice")!)
+        request.setValue(key, forHTTPHeaderField: "x-user-openai-key")
+    }
+}
+```
+
+**5. Background Processing**
+
+For long-running operations:
+
+```swift
+func generateInBackground() {
+    Task.detached(priority: .background) {
+        do {
+            let result = try await client.generateImage(prompt: "...")
+            await MainActor.run {
+                // Update UI
+            }
+        } catch {
+            // Handle error
+        }
+    }
+}
+```
+
+### SwiftUI Integration Example
+
+```swift
+import SwiftUI
+import AVFoundation
+
+@MainActor
+class AIViewModel: ObservableObject {
+    @Published var chatMessages: [ChatMessage] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private let client: StudioAPIClient
+
+    init(appKey: String) {
+        self.client = StudioAPIClient(appKey: appKey)
+    }
+
+    func sendMessage(_ text: String) async {
+        isLoading = true
+        errorMessage = nil
+
+        let userMessage = ChatMessage(role: "user", content: text)
+        chatMessages.append(userMessage)
+
+        do {
+            let response = try await client.chat(messages: chatMessages, kind: "chat.default")
+            if let assistantMessage = response.choices.first?.message {
+                chatMessages.append(assistantMessage)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+
+    func generateSpeech(_ text: String) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let audioData = try await client.generateSpeech(text: text, voice: "alloy", kind: "voice.openai")
+            try client.playAudio(data: audioData)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+}
+
+struct ChatView: View {
+    @StateObject private var viewModel: AIViewModel
+    @State private var inputText = ""
+
+    var body: some View {
+        VStack {
+            ScrollView {
+                ForEach(viewModel.chatMessages, id: \.role) { message in
+                    HStack {
+                        if message.role == "user" {
+                            Spacer()
+                        }
+                        Text(message.content)
+                            .padding()
+                            .background(message.role == "user" ? Color.blue : Color.gray)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                        if message.role == "assistant" {
+                            Spacer()
+                        }
+                    }
+                }
+            }
+
+            HStack {
+                TextField("Type a message...", text: $inputText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                Button("Send") {
+                    Task {
+                        await viewModel.sendMessage(inputText)
+                        inputText = ""
+                    }
+                }
+                .disabled(viewModel.isLoading)
+
+                Button("🔊") {
+                    Task {
+                        await viewModel.generateSpeech(inputText)
+                    }
+                }
+                .disabled(viewModel.isLoading || inputText.isEmpty)
+            }
+            .padding()
+        }
+        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("OK") { viewModel.errorMessage = nil }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
+    }
+}
+```
+
+### CloudKit Sync Considerations
+
+When using Studio API with CloudKit:
+
+1. **Image URLs**: Use the `/v1/images/generate` endpoint which returns direct URLs
+2. **Store URLs**: Save image URLs in CloudKit records instead of base64 data
+3. **TTL**: Replicate URLs expire after 24 hours - consider using the image hosting service
+4. **Audio Data**: Store audio as CKAsset for efficient syncing
+
+```swift
+// Store image URL in CloudKit
+let record = CKRecord(recordType: "GeneratedImage")
+record["imageURL"] = imageURL as CKRecordValue
+record["prompt"] = prompt as CKRecordValue
+record["createdAt"] = Date() as CKRecordValue
+```
+
+### Testing Checklist
+
+- [ ] Session token creation and refresh
+- [ ] Chat completions with different models
+- [ ] Image generation with various styles
+- [ ] Text-to-speech with different voices (OpenAI and ElevenLabs)
+- [ ] Music generation
+- [ ] Error handling (401, 429, 500)
+- [ ] Background task handling
+- [ ] Network failure recovery
+- [ ] Rate limit handling
+
+### Common Issues
+
+**Session Token Expired (401)**
+```swift
+// Catch and retry with new session
+do {
+    let response = try await client.chat(messages: messages)
+} catch StudioAPIError.sessionExpired {
+    // Force refresh session token
+    client.sessionToken = nil
+    let response = try await client.chat(messages: messages)
+}
+```
+
+**Rate Limit Exceeded (429)**
+```swift
+// Implement exponential backoff
+func retryWithBackoff<T>(attempts: Int = 3, operation: @escaping () async throws -> T) async throws -> T {
+    for attempt in 0..<attempts {
+        do {
+            return try await operation()
+        } catch StudioAPIError.rateLimitExceeded {
+            if attempt < attempts - 1 {
+                try await Task.sleep(nanoseconds: UInt64(pow(2.0, Double(attempt))) * 1_000_000_000)
+            } else {
+                throw StudioAPIError.rateLimitExceeded
+            }
+        }
+    }
+    throw StudioAPIError.rateLimitExceeded
+}
+```
 
 ## Support
 

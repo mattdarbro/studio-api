@@ -40,6 +40,10 @@ export const PRICING = {
 
     // Realtime API
     'gpt-4o-realtime-preview': { input: 0.005, output: 0.020 } as TokenPricing,
+
+    // TTS models (per 1M characters)
+    'tts-1': { input: 0.015, output: 0.0 } as TokenPricing,        // $15 per 1M chars
+    'tts-1-hd': { input: 0.030, output: 0.0 } as TokenPricing,     // $30 per 1M chars
   },
 
   anthropic: {
