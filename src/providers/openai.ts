@@ -73,3 +73,39 @@ export async function openaiRealtimeSession({ model, key }: OpenAIRealtimeReques
   logger.debug(`OpenAI realtime session created successfully`);
   return data;
 }
+
+interface OpenAITTSRequest {
+  model: string;
+  text: string;
+  voice: string;
+  key: string;
+}
+
+export async function openaiTextToSpeech({ model, text, voice, key }: OpenAITTSRequest): Promise<Buffer> {
+  logger.debug(`OpenAI TTS: "${text.substring(0, 50)}..." with voice: ${voice}, model: ${model}`);
+
+  const response = await fetchWithTimeout('https://api.openai.com/v1/audio/speech', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`
+    },
+    body: JSON.stringify({
+      model,
+      input: text,
+      voice,
+      response_format: 'mp3'
+    }),
+    agent: keepAliveAgent,
+    timeout: TIMEOUTS.VOICE
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    logger.error(`OpenAI TTS API error: ${response.status} - ${errorText}`);
+    throw new Error(`OpenAI TTS API error: ${response.status} - ${errorText}`);
+  }
+
+  logger.debug(`OpenAI TTS generated successfully`);
+  return Buffer.from(await response.arrayBuffer());
+}

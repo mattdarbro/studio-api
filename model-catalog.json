@@ -60,6 +60,14 @@
         "provider": "elevenlabs",
         "model": "eleven_turbo_v2_5"
       },
+      "voice.openai": {
+        "provider": "openai",
+        "model": "tts-1"
+      },
+      "voice.openai-hd": {
+        "provider": "openai",
+        "model": "tts-1-hd"
+      },
       "voice.flash": {
         "provider": "elevenlabs",
         "model": "eleven_flash_v2_5"
@@ -135,6 +143,14 @@
         "provider": "elevenlabs",
         "model": "eleven_turbo_v2_5"
       },
+      "voice.openai": {
+        "provider": "openai",
+        "model": "tts-1"
+      },
+      "voice.openai-hd": {
+        "provider": "openai",
+        "model": "tts-1-hd"
+      },
       "voice.flash": {
         "provider": "elevenlabs",
         "model": "eleven_flash_v2_5"
@@ -181,6 +197,14 @@
       "voice.default": {
         "provider": "elevenlabs",
         "model": "eleven_flash_v2_5"
+      },
+      "voice.openai": {
+        "provider": "openai",
+        "model": "tts-1"
+      },
+      "voice.openai-hd": {
+        "provider": "openai",
+        "model": "tts-1-hd"
       },
       "voice.flash": {
         "provider": "elevenlabs",
