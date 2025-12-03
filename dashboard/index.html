@@ -1007,7 +1007,13 @@ class StudioAPIClient {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || `HTTP ${response.status}`);
+          // Pass the full error object if it has structured data
+          if (errorData.examples || errorData.suggestion) {
+            displayError(errorData);
+          } else {
+            displayError(errorData.error || `HTTP ${response.status}`);
+          }
+          return;
         }
 
         const data = await response.json();
@@ -1078,14 +1084,43 @@ class StudioAPIClient {
       resultDiv.classList.add('active');
     }
 
-    function displayError(message) {
+    function displayError(errorData) {
       const resultDiv = document.getElementById('result');
-      resultDiv.innerHTML = `
-        <div class="error">
-          <h3>Error</h3>
-          <p>${escapeHtml(message)}</p>
-        </div>
-      `;
+
+      // Handle both string errors and structured error objects
+      if (typeof errorData === 'string') {
+        resultDiv.innerHTML = `
+          <div class="error">
+            <h3>Error</h3>
+            <p>${escapeHtml(errorData)}</p>
+          </div>
+        `;
+      } else {
+        let html = `
+          <div class="error">
+            <h3>${escapeHtml(errorData.error || 'Error')}</h3>
+            ${errorData.reason ? `<p>${escapeHtml(errorData.reason)}</p>` : ''}
+            ${errorData.suggestion ? `<p style="margin-top: 12px;"><strong>Suggestion:</strong> ${escapeHtml(errorData.suggestion)}</p>` : ''}
+        `;
+
+        if (errorData.examples && errorData.examples.length > 0) {
+          html += `
+            <div style="margin-top: 16px;">
+              <p><strong>Try asking:</strong></p>
+              <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+          `;
+          errorData.examples.forEach(example => {
+            html += `<button class="example-btn" onclick="setQuestion('${escapeHtml(example)}')" style="background: rgba(99, 102, 241, 0.2); border-color: var(--accent);">${escapeHtml(example)}</button>`;
+          });
+          html += `
+              </div>
+            </div>
+          `;
+        }
+
+        html += `</div>`;
+        resultDiv.innerHTML = html;
+      }
       resultDiv.classList.add('active');
     }
 

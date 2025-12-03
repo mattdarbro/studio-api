@@ -342,7 +342,7 @@ Important:
 `;
 
     // System prompt for AI to generate SQL
-    const systemPrompt = `You are an expert SQL analyst. Generate a SQLite query to answer the user's question about API usage logs.
+    const systemPrompt = `You are an expert SQL analyst for an API usage tracking system. Your job is to generate SQLite queries to answer questions about API usage, costs, and analytics.
 
 ${schemaDescription}
 
@@ -356,9 +356,25 @@ Rules:
 7. For cost queries, format as: ROUND(SUM(estimated_cost) / 100.0, 4) as cost_usd
 8. Return results in descending order of importance (cost, count, etc.)
 
-After the SQL query, on a new line starting with "EXPLANATION:", provide a brief explanation of what the query does.
+IMPORTANT: If the user's question is NOT related to API usage, costs, analytics, requests, providers, models, tokens, or spending, respond with:
+NOT_ANALYTICS_QUESTION: [brief explanation of what kinds of questions you can answer]
 
-Format:
+Example questions you CAN answer:
+- "How much did arno-ios spend last week?"
+- "Which app used the most OpenAI requests?"
+- "Show me total costs by provider"
+- "What are the top 5 most expensive models?"
+- "Show me failed requests in the last 24 hours"
+- "What's the average response time?"
+- "How many tokens were used today?"
+
+Example questions you CANNOT answer (respond with NOT_ANALYTICS_QUESTION):
+- "What is the weather?"
+- "Hello, how are you?"
+- "Write me a poem"
+- Random text or gibberish
+
+For valid analytics questions, respond with:
 [SQL QUERY]
 EXPLANATION: [Brief explanation]`;
 
@@ -401,6 +417,28 @@ EXPLANATION: [Brief explanation]`;
 
     logger.debug(`Raw AI response: ${aiMessage}`);
 
+    // Check if the AI determined this is not an analytics question
+    if (aiMessage.includes('NOT_ANALYTICS_QUESTION')) {
+      const reasonMatch = aiMessage.match(/NOT_ANALYTICS_QUESTION:\s*(.+)/);
+      const reason = reasonMatch ? reasonMatch[1].trim() : 'This question is not related to API usage analytics.';
+
+      res.status(400).json({
+        error: 'Question not understood',
+        reason: reason,
+        suggestion: 'Please ask questions about your API usage, costs, or analytics.',
+        examples: [
+          'How much did arno-ios spend last week?',
+          'Which app used the most OpenAI requests?',
+          'Show me total costs by provider',
+          'What are the top 5 most expensive models?',
+          'Show me failed requests in the last 24 hours',
+          'What\'s the average response time?',
+          'How many tokens were used today?'
+        ]
+      });
+      return;
+    }
+
     // Extract SQL and explanation - handle multiple response formats
     let sql = '';
     let explanation = 'Query generated successfully';
@@ -438,10 +476,17 @@ EXPLANATION: [Brief explanation]`;
     // Validate that we extracted SQL
     if (!sql || sql.length === 0) {
       logger.error('Failed to extract SQL from AI response:', aiMessage);
-      res.status(500).json({
-        error: 'Failed to extract SQL from AI response',
-        rawResponse: aiMessage,
-        suggestion: 'The AI did not return SQL in the expected format. Try rephrasing your question.'
+      res.status(400).json({
+        error: 'Could not understand your question',
+        reason: 'Unable to convert your question into a database query.',
+        suggestion: 'Try rephrasing your question to be more specific about API usage, costs, or analytics.',
+        examples: [
+          'How much did arno-ios spend last week?',
+          'Which app used the most OpenAI requests?',
+          'Show me total costs by provider',
+          'What are the top 5 most expensive models?',
+          'Show me failed requests in the last 24 hours'
+        ]
       });
       return;
     }
