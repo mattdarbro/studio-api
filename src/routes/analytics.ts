@@ -342,7 +342,7 @@ Important:
 `;
 
     // System prompt for AI to generate SQL
-    const systemPrompt = `You are an expert SQL analyst. Generate a SQLite query to answer the user's question about API usage logs.
+    const systemPrompt = `You are an expert SQL analyst for an API usage tracking system. Your job is to generate SQLite queries to answer questions about API usage, costs, and analytics.
 
 ${schemaDescription}
 
@@ -356,9 +356,25 @@ Rules:
 7. For cost queries, format as: ROUND(SUM(estimated_cost) / 100.0, 4) as cost_usd
 8. Return results in descending order of importance (cost, count, etc.)
 
-After the SQL query, on a new line starting with "EXPLANATION:", provide a brief explanation of what the query does.
+IMPORTANT: If the user's question is NOT related to API usage, costs, analytics, requests, providers, models, tokens, or spending, respond with:
+NOT_ANALYTICS_QUESTION: [brief explanation of what kinds of questions you can answer]
 
-Format:
+Example questions you CAN answer:
+- "How much did arno-ios spend last week?"
+- "Which app used the most OpenAI requests?"
+- "Show me total costs by provider"
+- "What are the top 5 most expensive models?"
+- "Show me failed requests in the last 24 hours"
+- "What's the average response time?"
+- "How many tokens were used today?"
+
+Example questions you CANNOT answer (respond with NOT_ANALYTICS_QUESTION):
+- "What is the weather?"
+- "Hello, how are you?"
+- "Write me a poem"
+- Random text or gibberish
+
+For valid analytics questions, respond with:
 [SQL QUERY]
 EXPLANATION: [Brief explanation]`;
 
@@ -401,6 +417,28 @@ EXPLANATION: [Brief explanation]`;
 
     logger.debug(`Raw AI response: ${aiMessage}`);
 
+    // Check if the AI determined this is not an analytics question
+    if (aiMessage.includes('NOT_ANALYTICS_QUESTION')) {
+      const reasonMatch = aiMessage.match(/NOT_ANALYTICS_QUESTION:\s*(.+)/);
+      const reason = reasonMatch ? reasonMatch[1].trim() : 'This question is not related to API usage analytics.';
+
+      res.status(400).json({
+        error: 'Question not understood',
+        reason: reason,
+        suggestion: 'Please ask questions about your API usage, costs, or analytics.',
+        examples: [
+          'How much did arno-ios spend last week?',
+          'Which app used the most OpenAI requests?',
+          'Show me total costs by provider',
+          'What are the top 5 most expensive models?',
+          'Show me failed requests in the last 24 hours',
+          'What\'s the average response time?',
+          'How many tokens were used today?'
+        ]
+      });
+      return;
+    }
+
     // Extract SQL and explanation - handle multiple response formats
     let sql = '';
     let explanation = 'Query generated successfully';
@@ -438,10 +476,17 @@ EXPLANATION: [Brief explanation]`;
     // Validate that we extracted SQL
     if (!sql || sql.length === 0) {
       logger.error('Failed to extract SQL from AI response:', aiMessage);
-      res.status(500).json({
-        error: 'Failed to extract SQL from AI response',
-        rawResponse: aiMessage,
-        suggestion: 'The AI did not return SQL in the expected format. Try rephrasing your question.'
+      res.status(400).json({
+        error: 'Could not understand your question',
+        reason: 'Unable to convert your question into a database query.',
+        suggestion: 'Try rephrasing your question to be more specific about API usage, costs, or analytics.',
+        examples: [
+          'How much did arno-ios spend last week?',
+          'Which app used the most OpenAI requests?',
+          'Show me total costs by provider',
+          'What are the top 5 most expensive models?',
+          'Show me failed requests in the last 24 hours'
+        ]
       });
       return;
     }
@@ -497,6 +542,284 @@ EXPLANATION: [Brief explanation]`;
   } catch (error: any) {
     logger.error('Analytics chat error:', error);
     res.status(500).json({ error: 'Failed to process chat request', details: error.message });
+  }
+});
+
+/**
+ * GET /v1/analytics/dashboard
+ * Get dashboard summary data for visual display
+ * Returns overview stats, per-app breakdown, and recent activity
+ */
+router.get('/dashboard', (req: Request, res: Response) => {
+  try {
+    const appKey = req.headers['x-app-key'] as string | undefined;
+    const validAppKey = process.env.APP_KEY;
+
+    if (!appKey || !validAppKey || appKey !== validAppKey) {
+      res.status(401).json({ error: 'Unauthorized: Valid x-app-key required' });
+      return;
+    }
+
+    const allLogs = getAllLogs();
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Filter logs by time period
+    const todayLogs = allLogs.filter(log => log.timestamp >= todayStart);
+    const weekLogs = allLogs.filter(log => log.timestamp >= weekStart);
+    const monthLogs = allLogs.filter(log => log.timestamp >= monthStart);
+
+    // Calculate totals
+    const calcTotals = (logs: any[]) => ({
+      requests: logs.length,
+      cost: logs.reduce((sum, log) => sum + (log.estimatedCost || 0), 0) / 100,
+      tokens: logs.reduce((sum, log) => sum + (log.inputTokens || 0) + (log.outputTokens || 0), 0),
+      errors: logs.filter(log => log.statusCode >= 400).length,
+    });
+
+    const todayTotals = calcTotals(todayLogs);
+    const weekTotals = calcTotals(weekLogs);
+    const monthTotals = calcTotals(monthLogs);
+    const allTimeTotals = calcTotals(allLogs);
+
+    // Per-app breakdown
+    const appMap = new Map<string, any>();
+    for (const log of allLogs) {
+      const appId = log.appId || 'unknown';
+      if (!appMap.has(appId)) {
+        appMap.set(appId, {
+          appId,
+          requests: 0,
+          cost: 0,
+          errors: 0,
+          lastUsed: log.timestamp.toISOString(),
+        });
+      }
+      const app = appMap.get(appId);
+      app.requests++;
+      app.cost += (log.estimatedCost || 0) / 100;
+      if (log.statusCode >= 400) app.errors++;
+      if (log.timestamp > app.lastUsed) app.lastUsed = log.timestamp.toISOString();
+    }
+    const apps = Array.from(appMap.values()).sort((a, b) => b.cost - a.cost);
+
+    // Per-provider breakdown
+    const providerMap = new Map<string, any>();
+    for (const log of allLogs) {
+      const provider = log.provider || 'unknown';
+      if (!providerMap.has(provider)) {
+        providerMap.set(provider, { provider, requests: 0, cost: 0 });
+      }
+      const p = providerMap.get(provider);
+      p.requests++;
+      p.cost += (log.estimatedCost || 0) / 100;
+    }
+    const providers = Array.from(providerMap.values()).sort((a, b) => b.cost - a.cost);
+
+    // Recent activity (last 10 requests)
+    const recentActivity = allLogs
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, 10)
+      .map(log => ({
+        timestamp: log.timestamp.toISOString(),
+        appId: log.appId || 'unknown',
+        endpoint: log.endpoint,
+        provider: log.provider,
+        model: log.model,
+        cost: ((log.estimatedCost || 0) / 100).toFixed(4),
+        status: log.statusCode,
+        duration: log.duration,
+      }));
+
+    res.json({
+      summary: {
+        today: { ...todayTotals, cost: todayTotals.cost.toFixed(4) },
+        week: { ...weekTotals, cost: weekTotals.cost.toFixed(4) },
+        month: { ...monthTotals, cost: monthTotals.cost.toFixed(4) },
+        allTime: { ...allTimeTotals, cost: allTimeTotals.cost.toFixed(4) },
+      },
+      apps: apps.map(a => ({ ...a, cost: a.cost.toFixed(4) })),
+      providers: providers.map(p => ({ ...p, cost: p.cost.toFixed(4) })),
+      recentActivity,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    logger.error('Dashboard error:', error);
+    res.status(500).json({ error: 'Failed to get dashboard data', details: error.message });
+  }
+});
+
+/**
+ * GET /v1/analytics/timeseries
+ * Get time-series data for charts
+ * Query params: period (hourly, daily, weekly), days (number of days to look back)
+ */
+router.get('/timeseries', (req: Request, res: Response) => {
+  try {
+    const appKey = req.headers['x-app-key'] as string | undefined;
+    const validAppKey = process.env.APP_KEY;
+
+    if (!appKey || !validAppKey || appKey !== validAppKey) {
+      res.status(401).json({ error: 'Unauthorized: Valid x-app-key required' });
+      return;
+    }
+
+    const period = (req.query.period as string) || 'daily';
+    const days = parseInt(req.query.days as string) || 7;
+    const appId = req.query.appId as string | undefined;
+
+    const now = new Date();
+    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+    let allLogs = getAllLogs().filter(log => log.timestamp >= startDate);
+    if (appId) {
+      allLogs = allLogs.filter(log => log.appId === appId);
+    }
+
+    // Group by time bucket
+    const buckets = new Map<string, { requests: number; cost: number; errors: number; tokens: number }>();
+
+    for (const log of allLogs) {
+      const date = log.timestamp;
+      let bucketKey: string;
+
+      if (period === 'hourly') {
+        bucketKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:00`;
+      } else if (period === 'weekly') {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        bucketKey = weekStart.toISOString().split('T')[0];
+      } else {
+        // daily
+        bucketKey = date.toISOString().split('T')[0];
+      }
+
+      if (!buckets.has(bucketKey)) {
+        buckets.set(bucketKey, { requests: 0, cost: 0, errors: 0, tokens: 0 });
+      }
+      const bucket = buckets.get(bucketKey)!;
+      bucket.requests++;
+      bucket.cost += (log.estimatedCost || 0) / 100;
+      bucket.tokens += (log.inputTokens || 0) + (log.outputTokens || 0);
+      if (log.statusCode >= 400) bucket.errors++;
+    }
+
+    // Convert to sorted array
+    const data = Array.from(buckets.entries())
+      .map(([time, stats]) => ({
+        time,
+        ...stats,
+        cost: parseFloat(stats.cost.toFixed(4)),
+      }))
+      .sort((a, b) => a.time.localeCompare(b.time));
+
+    res.json({
+      period,
+      days,
+      appId: appId || 'all',
+      data,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    logger.error('Timeseries error:', error);
+    res.status(500).json({ error: 'Failed to get timeseries data', details: error.message });
+  }
+});
+
+/**
+ * GET /v1/analytics/health
+ * Get health and performance metrics
+ */
+router.get('/health', (req: Request, res: Response) => {
+  try {
+    const appKey = req.headers['x-app-key'] as string | undefined;
+    const validAppKey = process.env.APP_KEY;
+
+    if (!appKey || !validAppKey || appKey !== validAppKey) {
+      res.status(401).json({ error: 'Unauthorized: Valid x-app-key required' });
+      return;
+    }
+
+    const now = new Date();
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const lastHour = new Date(now.getTime() - 60 * 60 * 1000);
+
+    const allLogs = getAllLogs();
+    const last24hLogs = allLogs.filter(log => log.timestamp >= last24h);
+    const lastHourLogs = allLogs.filter(log => log.timestamp >= lastHour);
+
+    // Calculate performance metrics
+    const calcMetrics = (logs: any[]) => {
+      if (logs.length === 0) {
+        return { avgLatency: 0, p95Latency: 0, errorRate: 0, successRate: 100 };
+      }
+      const durations = logs.map(log => log.duration || 0).sort((a, b) => a - b);
+      const errors = logs.filter(log => log.statusCode >= 400).length;
+      const p95Index = Math.floor(durations.length * 0.95);
+
+      return {
+        avgLatency: Math.round(durations.reduce((a, b) => a + b, 0) / durations.length),
+        p95Latency: durations[p95Index] || 0,
+        errorRate: parseFloat(((errors / logs.length) * 100).toFixed(2)),
+        successRate: parseFloat((((logs.length - errors) / logs.length) * 100).toFixed(2)),
+      };
+    };
+
+    const last24hMetrics = calcMetrics(last24hLogs);
+    const lastHourMetrics = calcMetrics(lastHourLogs);
+
+    // Per-endpoint health
+    const endpointMap = new Map<string, any[]>();
+    for (const log of last24hLogs) {
+      const endpoint = log.endpoint || 'unknown';
+      if (!endpointMap.has(endpoint)) endpointMap.set(endpoint, []);
+      endpointMap.get(endpoint)!.push(log);
+    }
+
+    const endpoints = Array.from(endpointMap.entries()).map(([endpoint, logs]) => ({
+      endpoint,
+      requests: logs.length,
+      ...calcMetrics(logs),
+    }));
+
+    // Per-provider health
+    const providerMap = new Map<string, any[]>();
+    for (const log of last24hLogs) {
+      const provider = log.provider || 'unknown';
+      if (!providerMap.has(provider)) providerMap.set(provider, []);
+      providerMap.get(provider)!.push(log);
+    }
+
+    const providerHealth = Array.from(providerMap.entries()).map(([provider, logs]) => ({
+      provider,
+      requests: logs.length,
+      ...calcMetrics(logs),
+    }));
+
+    // Overall health status
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+    if (lastHourMetrics.errorRate > 10) status = 'degraded';
+    if (lastHourMetrics.errorRate > 25) status = 'unhealthy';
+
+    res.json({
+      status,
+      lastHour: {
+        requests: lastHourLogs.length,
+        ...lastHourMetrics,
+      },
+      last24Hours: {
+        requests: last24hLogs.length,
+        ...last24hMetrics,
+      },
+      endpoints,
+      providers: providerHealth,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    logger.error('Health error:', error);
+    res.status(500).json({ error: 'Failed to get health data', details: error.message });
   }
 });
 
