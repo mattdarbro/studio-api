@@ -100,8 +100,8 @@ export const usageTrackerMiddleware: RequestHandler = (
           }
         }
 
-        // Calculate cost
-        if (provider && model) {
+        // Calculate cost (only for successful responses)
+        if (provider && model && statusCode >= 200 && statusCode < 400) {
           estimatedCost = Math.round(
             calculateTokenCost(provider as any, model, inputTokens, outputTokens) * 100
           );
@@ -110,14 +110,21 @@ export const usageTrackerMiddleware: RequestHandler = (
         // Image generation
         provider = 'replicate';
 
-        // Try to extract model from response or default
-        if (body && body.version) {
+        // Determine model from request 'kind' parameter
+        const kind = authReq.body?.kind || 'image.default';
+        // Map kind to model - default to flux-schnell
+        if (kind === 'image.pro' || kind === 'image.flux-pro') {
+          model = 'black-forest-labs/flux-pro';
+        } else if (kind === 'image.dev' || kind === 'image.flux-dev') {
+          model = 'black-forest-labs/flux-dev';
+        } else {
           model = 'black-forest-labs/flux-schnell'; // Default
         }
 
         const numImages = authReq.body?.num_outputs || 1;
 
-        if (model) {
+        // Only calculate cost for successful responses
+        if (statusCode >= 200 && statusCode < 400) {
           estimatedCost = Math.round(calculateImageCost('replicate', model, numImages) * 100);
         }
       } else if (endpoint.startsWith('/v1/music')) {
@@ -126,7 +133,34 @@ export const usageTrackerMiddleware: RequestHandler = (
         model = 'eleven_music';
 
         const duration = authReq.body?.duration || 30;
-        estimatedCost = Math.round(calculateMusicCost('elevenlabs', model, duration) * 100);
+        // Only calculate cost for successful responses
+        if (statusCode >= 200 && statusCode < 400) {
+          estimatedCost = Math.round(calculateMusicCost('elevenlabs', model, duration) * 100);
+        }
+      } else if (endpoint.startsWith('/v1/voice')) {
+        // Text-to-Speech
+        const kind = authReq.body?.kind || 'voice.default';
+        const text = authReq.body?.text || '';
+        const charCount = text.length;
+
+        // Determine provider from kind
+        if (kind.includes('openai') || kind === 'voice.default') {
+          provider = 'openai';
+          model = kind.includes('hd') ? 'tts-1-hd' : 'tts-1';
+          // OpenAI TTS: $15 per 1M chars for tts-1, $30 for tts-1-hd
+          if (statusCode >= 200 && statusCode < 400) {
+            const costPerChar = model === 'tts-1-hd' ? 0.00003 : 0.000015;
+            estimatedCost = Math.round(charCount * costPerChar * 100);
+          }
+        } else {
+          provider = 'elevenlabs';
+          model = 'eleven_voice';
+          // ElevenLabs: ~$0.0002 per character
+          if (statusCode >= 200 && statusCode < 400) {
+            estimatedCost = Math.round(charCount * 0.0002 * 100);
+          }
+        }
+        inputTokens = charCount; // Store character count as input tokens
       } else if (endpoint.startsWith('/v1/ephemeral')) {
         // Realtime API
         provider = 'openai';
