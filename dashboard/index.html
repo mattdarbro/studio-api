@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Lucid Analytics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * {
       margin: 0;
@@ -20,6 +21,7 @@
       --accent: #6366f1;
       --accent-hover: #4f46e5;
       --success: #10b981;
+      --warning: #f59e0b;
       --error: #ef4444;
       --border: #3a3a3a;
     }
@@ -34,14 +36,14 @@
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 20px;
     }
 
     header {
       text-align: center;
-      padding: 40px 20px;
+      padding: 30px 20px;
       background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
       border-bottom: 1px solid var(--border);
     }
@@ -61,100 +63,49 @@
       font-size: clamp(14px, 3vw, 16px);
     }
 
-    .chat-container {
+    /* Config Section */
+    .config-section {
       background: var(--bg-secondary);
-      border-radius: 16px;
-      padding: 24px;
-      margin: 20px 0;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    }
-
-    .examples {
-      margin-bottom: 20px;
-    }
-
-    .examples h3 {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .example-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .example-btn {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
-      border: 1px solid var(--border);
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .example-btn:active {
-      transform: scale(0.95);
-    }
-
-    .example-btn:hover {
-      background: var(--bg-primary);
-      border-color: var(--accent);
-    }
-
-    .input-group {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    textarea {
-      flex: 1;
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
-      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 16px;
-      font-size: 16px;
-      font-family: inherit;
-      resize: vertical;
-      min-height: 60px;
-      max-height: 200px;
-      transition: border-color 0.2s;
+      margin: 20px 0;
+      border: 1px solid var(--border);
     }
 
-    textarea:focus {
+    .config-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .config-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: 'Monaco', 'Menlo', monospace;
+    }
+
+    .config-input:focus {
       outline: none;
       border-color: var(--accent);
-    }
-
-    textarea::placeholder {
-      color: var(--text-secondary);
     }
 
     .btn {
       background: var(--accent);
       color: white;
       border: none;
-      padding: 16px 32px;
-      border-radius: 12px;
-      font-size: 16px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
-      -webkit-tap-highlight-color: transparent;
-      min-width: 120px;
-    }
-
-    .btn:active {
-      transform: scale(0.95);
     }
 
     .btn:hover:not(:disabled) {
@@ -166,151 +117,195 @@
       cursor: not-allowed;
     }
 
-    .loading {
-      display: none;
-      text-align: center;
-      padding: 20px;
-      color: var(--text-secondary);
-    }
-
-    .loading.active {
-      display: block;
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .result {
-      display: none;
-      margin-top: 20px;
-    }
-
-    .result.active {
-      display: block;
-    }
-
-    .sql-query {
-      background: var(--bg-primary);
+    .btn-secondary {
+      background: var(--bg-tertiary);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 20px;
     }
 
-    .sql-query h3 {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--bg-primary);
+      border-color: var(--accent);
     }
 
-    .sql-code {
-      background: #000;
-      color: #10b981;
-      padding: 12px;
+    /* Health Status Banner */
+    .health-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
       border-radius: 8px;
-      font-family: 'Monaco', 'Menlo', monospace;
-      font-size: 13px;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
+      margin: 20px 0;
+      font-weight: 500;
     }
 
-    .explanation {
-      background: var(--bg-primary);
+    .health-banner.healthy {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+
+    .health-banner.degraded {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid var(--warning);
+      color: var(--warning);
+    }
+
+    .health-banner.unhealthy {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--error);
+      color: var(--error);
+    }
+
+    .health-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .healthy .health-dot { background: var(--success); }
+    .degraded .health-dot { background: var(--warning); }
+    .unhealthy .health-dot { background: var(--error); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Summary Cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .summary-card {
+      background: var(--bg-secondary);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 20px;
+      padding: 20px;
     }
 
-    .explanation h3 {
-      font-size: 14px;
+    .summary-card h3 {
+      font-size: 12px;
+      text-transform: uppercase;
       color: var(--text-secondary);
       margin-bottom: 8px;
-      text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    .explanation p {
+    .summary-card .value {
+      font-size: 28px;
+      font-weight: 700;
       color: var(--text-primary);
-      line-height: 1.6;
     }
 
-    .results-table {
-      background: var(--bg-primary);
+    .summary-card .value.cost {
+      color: var(--success);
+    }
+
+    .summary-card .subvalue {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Chart Section */
+    .chart-section {
+      background: var(--bg-secondary);
       border: 1px solid var(--border);
       border-radius: 12px;
-      overflow: hidden;
+      padding: 20px;
+      margin: 20px 0;
     }
 
-    .results-header {
+    .chart-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .chart-header h2 {
+      font-size: 18px;
+      color: var(--text-primary);
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chart-controls select {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .chart-controls select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+
+    /* Tables */
+    .table-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
       background: var(--bg-tertiary);
       border-bottom: 1px solid var(--border);
     }
 
-    .results-header h3 {
-      font-size: 14px;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .export-btn {
-      background: var(--bg-secondary);
+    .table-header h2 {
+      font-size: 16px;
       color: var(--text-primary);
-      border: 1px solid var(--border);
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s;
     }
 
-    .export-btn:hover {
-      background: var(--bg-primary);
-      border-color: var(--accent);
+    .table-wrapper {
+      overflow-x: auto;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      overflow-x: auto;
-      display: block;
-    }
-
-    thead {
-      background: var(--bg-tertiary);
     }
 
     th {
-      padding: 12px;
+      padding: 12px 16px;
       text-align: left;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       border-bottom: 1px solid var(--border);
       white-space: nowrap;
     }
 
     td {
-      padding: 12px;
+      padding: 12px 16px;
       font-size: 14px;
       border-bottom: 1px solid var(--border);
       white-space: nowrap;
@@ -324,18 +319,201 @@
       background: var(--bg-tertiary);
     }
 
-    .error {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid var(--error);
-      border-radius: 12px;
-      padding: 16px;
-      color: var(--error);
-      margin-top: 20px;
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
     }
 
-    .error h3 {
+    .status-badge.success {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .status-badge.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--error);
+    }
+
+    /* Two Column Layout */
+    .two-column {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+
+    /* Performance Metrics */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .metric-item {
+      text-align: center;
+      padding: 12px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+    }
+
+    .metric-item .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .metric-item .value {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Collapsible Section */
+    .collapsible {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+
+    .collapsible-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .collapsible-header h2 {
+      font-size: 16px;
+      color: var(--text-primary);
+    }
+
+    .collapsible-toggle {
+      font-size: 20px;
+      color: var(--text-secondary);
+      transition: transform 0.3s;
+    }
+
+    .collapsible-toggle.open {
+      transform: rotate(180deg);
+    }
+
+    .collapsible-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .collapsible-content.open {
+      max-height: 2000px;
+    }
+
+    .collapsible-inner {
+      padding: 0 20px 20px;
+    }
+
+    /* Chat Interface (inside collapsible) */
+    .chat-examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .example-btn {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .example-btn:hover {
+      background: var(--bg-primary);
+      border-color: var(--accent);
+    }
+
+    .chat-input-group {
+      display: flex;
+      gap: 12px;
+    }
+
+    .chat-input-group textarea {
+      flex: 1;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
       font-size: 14px;
-      margin-bottom: 8px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 50px;
+    }
+
+    .chat-input-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .chat-result {
+      margin-top: 16px;
+      display: none;
+    }
+
+    .chat-result.active {
+      display: block;
+    }
+
+    .sql-display {
+      background: #000;
+      color: var(--success);
+      padding: 12px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+
+    /* Loading States */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .loading-overlay.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     .empty-state {
@@ -344,611 +522,280 @@
       color: var(--text-secondary);
     }
 
-    .empty-state svg {
-      width: 64px;
-      height: 64px;
-      margin-bottom: 16px;
-      opacity: 0.5;
-    }
-
-    .config-section {
-      background: var(--bg-secondary);
-      border-radius: 16px;
-      padding: 24px;
-      margin: 20px 0;
-      border: 1px solid var(--border);
-    }
-
-    .config-section h3 {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .config-input {
-      width: 100%;
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
-      border: 1px solid var(--border);
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--error);
       border-radius: 8px;
-      padding: 12px;
-      font-size: 14px;
-      font-family: 'Monaco', 'Menlo', monospace;
-      margin-bottom: 8px;
-    }
-
-    .config-input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    .help-text {
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-top: 4px;
-    }
-
-    .integration-guide {
-      background: var(--bg-secondary);
-      border-radius: 16px;
-      padding: 24px;
-      margin: 20px 0;
-      border: 1px solid var(--border);
-    }
-
-    .integration-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .integration-header h3 {
-      font-size: 16px;
-      color: var(--text-primary);
-      margin: 0;
-    }
-
-    .integration-toggle {
-      font-size: 24px;
-      color: var(--text-secondary);
-      transition: transform 0.3s;
-    }
-
-    .integration-toggle.open {
-      transform: rotate(180deg);
-    }
-
-    .integration-content {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease-out;
-    }
-
-    .integration-content.open {
-      max-height: 2000px;
-      transition: max-height 0.5s ease-in;
-    }
-
-    .integration-content pre {
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      overflow-x: auto;
+      padding: 12px 16px;
+      color: var(--error);
       margin: 12px 0;
-    }
-
-    .integration-content code {
-      color: var(--success);
-      font-family: 'Monaco', 'Menlo', monospace;
-      font-size: 13px;
-    }
-
-    .integration-content p {
-      margin: 12px 0;
-      line-height: 1.6;
-    }
-
-    .integration-content ul {
-      margin: 12px 0 12px 20px;
-      line-height: 1.8;
-    }
-
-    .integration-content strong {
-      color: var(--accent);
     }
 
     footer {
       text-align: center;
-      padding: 40px 20px;
+      padding: 30px 20px;
       color: var(--text-secondary);
-      font-size: 14px;
+      font-size: 13px;
     }
 
+    /* Responsive */
     @media (max-width: 768px) {
       .container {
         padding: 12px;
       }
 
-      .chat-container {
-        padding: 16px;
+      .two-column {
+        grid-template-columns: 1fr;
       }
 
-      .input-group {
+      .chart-container {
+        height: 250px;
+      }
+
+      .config-row {
         flex-direction: column;
       }
 
-      .btn {
+      .config-input {
         width: 100%;
       }
-
-      table {
-        font-size: 12px;
-      }
-
-      th, td {
-        padding: 8px;
-      }
-    }
-
-    /* iOS Safari specific fixes */
-    @supports (-webkit-touch-callout: none) {
-      textarea {
-        font-size: 16px; /* Prevents zoom on focus */
-      }
-    }
-
-    /* Documentation Section */
-    .docs-section {
-      background: var(--bg-secondary);
-      border-radius: 16px;
-      padding: 24px;
-      margin: 20px 0;
-      border: 1px solid var(--border);
-    }
-
-    .docs-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .docs-header h2 {
-      font-size: clamp(18px, 4vw, 24px);
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .toggle-icon {
-      font-size: 24px;
-      color: var(--text-secondary);
-      transition: transform 0.3s;
-    }
-
-    .toggle-icon.open {
-      transform: rotate(180deg);
-    }
-
-    .docs-content {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease-out;
-    }
-
-    .docs-content.open {
-      max-height: 5000px;
-      transition: max-height 0.5s ease-in;
-    }
-
-    .docs-inner {
-      padding-top: 20px;
-    }
-
-    .docs-section h3 {
-      font-size: 18px;
-      color: var(--text-primary);
-      margin: 24px 0 12px 0;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .docs-section h4 {
-      font-size: 16px;
-      color: var(--accent);
-      margin: 16px 0 8px 0;
-    }
-
-    .docs-section p {
-      color: var(--text-secondary);
-      margin-bottom: 12px;
-      line-height: 1.8;
-    }
-
-    .docs-section ul {
-      list-style: none;
-      margin: 12px 0;
-      padding: 0;
-    }
-
-    .docs-section li {
-      color: var(--text-secondary);
-      margin: 8px 0;
-      padding-left: 24px;
-      position: relative;
-    }
-
-    .docs-section li:before {
-      content: "→";
-      position: absolute;
-      left: 0;
-      color: var(--accent);
-    }
-
-    .code-block {
-      background: #000;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      margin: 12px 0;
-      overflow-x: auto;
-      font-family: 'Monaco', 'Menlo', monospace;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    .code-block code {
-      color: #10b981;
-      white-space: pre;
-    }
-
-    .code-comment {
-      color: var(--text-secondary);
-    }
-
-    .highlight {
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    .benefit-card {
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      margin: 12px 0;
-    }
-
-    .benefit-card h4 {
-      color: var(--success);
-      margin-top: 0;
     }
   </style>
 </head>
 <body>
   <header>
     <h1>Lucid Analytics</h1>
-    <p class="subtitle">AI-powered analytics for your API usage</p>
+    <p class="subtitle">Real-time API usage monitoring and analytics</p>
   </header>
 
   <div class="container">
-    <!-- Configuration Section -->
+    <!-- Configuration -->
     <div class="config-section">
-      <h3>Configuration</h3>
-      <input
-        type="text"
-        id="apiUrl"
-        class="config-input"
-        placeholder="https://your-api.railway.app"
-        value="">
-      <p class="help-text">Enter your Studio API URL (deployed on Railway)</p>
-
-      <input
-        type="password"
-        id="appKey"
-        class="config-input"
-        placeholder="Your APP_KEY"
-        value="">
-      <p class="help-text">Enter your APP_KEY for authentication</p>
-    </div>
-
-    <!-- Integration Guide -->
-    <div class="integration-guide">
-      <div class="integration-header" onclick="toggleIntegration()">
-        <h3>📚 How to Integrate with Your Legacy Apps</h3>
-        <span class="integration-toggle" id="integrationToggle">▼</span>
-      </div>
-      <div class="integration-content" id="integrationContent">
-        <p style="margin-top: 16px;">
-          Want to add analytics tracking to your existing applications? Follow these steps to route your LLM requests through Studio API and start tracking usage.
-        </p>
-
-        <p><strong>Step 1: Update Your API Calls</strong></p>
-        <p>Replace direct OpenAI/Anthropic calls with Studio API:</p>
-        <pre><code>// Before (Direct OpenAI):
-const response = await openai.chat.completions.create({
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello' }]
-});
-
-// After (Through Studio API):
-const response = await fetch('YOUR_API_URL/v1/chat', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-app-key': 'YOUR_APP_KEY',
-    'x-app-id': 'my-legacy-app',  // ← Track per-app usage
-    'x-user-id': userId,           // ← Optional: track per-user
-  },
-  body: JSON.stringify({
-    kind: 'chat.default',
-    messages: [{ role: 'user', content: 'Hello' }]
-  })
-});</code></pre>
-
-        <p><strong>Step 2: Add Environment Variables</strong></p>
-        <p>Update your app's <code>.env</code> file:</p>
-        <pre><code>STUDIO_API_URL=https://your-api.railway.app
-STUDIO_API_KEY=your-app-key-here
-APP_ID=my-legacy-app  # Identifies your app in analytics</code></pre>
-
-        <p><strong>Step 3: Deploy and Track</strong></p>
-        <ul>
-          <li>Deploy your updated app</li>
-          <li>Make some test requests</li>
-          <li>Come back to this dashboard and ask: <em>"How much did my-legacy-app spend today?"</em></li>
-        </ul>
-
-        <p><strong>Multiple Apps?</strong></p>
-        <p>Track different apps separately using unique <code>x-app-id</code> headers:</p>
-        <pre><code>// Mobile app
-headers: { 'x-app-id': 'mobile-ios' }
-
-// Web dashboard
-headers: { 'x-app-id': 'web-dashboard' }
-
-// Background jobs
-headers: { 'x-app-id': 'background-worker' }</code></pre>
-
-        <p><strong>Example Analytics Questions:</strong></p>
-        <ul>
-          <li>"How much did mobile-ios spend vs web-dashboard this week?"</li>
-          <li>"Show me all failed requests for my-legacy-app"</li>
-          <li>"What's the average response time by app?"</li>
-        </ul>
-
-        <p>
-          <strong>📖 Full Documentation:</strong> Check the
-          <a href="https://github.com/mattdarbro/studio-api/blob/main/INTEGRATION.md#integrating-analytics-into-legacy-apps"
-             target="_blank"
-             style="color: var(--accent); text-decoration: none;">
-            INTEGRATION.md guide
-          </a>
-          for complete migration patterns and troubleshooting.
-        </p>
+      <div class="config-row">
+        <input type="text" id="apiUrl" class="config-input" placeholder="https://your-api.railway.app">
+        <input type="password" id="appKey" class="config-input" placeholder="Your APP_KEY">
+        <button class="btn" onclick="loadDashboard()">Load Dashboard</button>
+        <button class="btn btn-secondary" onclick="refreshData()">Refresh</button>
       </div>
     </div>
 
-    <!-- Chat Interface -->
-    <div class="chat-container">
-      <div class="examples">
-        <h3>Example Questions</h3>
-        <div class="example-buttons">
-          <button class="example-btn" onclick="setQuestion('How much did arno-ios spend last week?')">
-            arno-ios spending last week
-          </button>
-          <button class="example-btn" onclick="setQuestion('Which app used the most OpenAI requests yesterday?')">
-            Most OpenAI usage yesterday
-          </button>
-          <button class="example-btn" onclick="setQuestion('Show me total costs by provider')">
-            Costs by provider
-          </button>
-          <button class="example-btn" onclick="setQuestion('What are the top 5 most expensive models?')">
-            Top 5 expensive models
-          </button>
-          <button class="example-btn" onclick="setQuestion('Show me all failed requests in the last 24 hours')">
-            Failed requests (24h)
-          </button>
+    <!-- Health Status Banner -->
+    <div class="health-banner healthy" id="healthBanner" style="display: none;">
+      <div class="health-dot"></div>
+      <span id="healthStatus">All systems operational</span>
+      <span style="margin-left: auto; font-size: 13px;" id="healthDetails"></span>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid" id="summaryGrid">
+      <div class="summary-card">
+        <h3>Today's Cost</h3>
+        <div class="value cost" id="todayCost">$0.00</div>
+        <div class="subvalue" id="todayRequests">0 requests</div>
+      </div>
+      <div class="summary-card">
+        <h3>This Week</h3>
+        <div class="value cost" id="weekCost">$0.00</div>
+        <div class="subvalue" id="weekRequests">0 requests</div>
+      </div>
+      <div class="summary-card">
+        <h3>This Month</h3>
+        <div class="value cost" id="monthCost">$0.00</div>
+        <div class="subvalue" id="monthRequests">0 requests</div>
+      </div>
+      <div class="summary-card">
+        <h3>All Time</h3>
+        <div class="value cost" id="allTimeCost">$0.00</div>
+        <div class="subvalue" id="allTimeRequests">0 requests</div>
+      </div>
+    </div>
+
+    <!-- Usage Chart -->
+    <div class="chart-section">
+      <div class="chart-header">
+        <h2>Usage Over Time</h2>
+        <div class="chart-controls">
+          <select id="chartMetric" onchange="updateChart()">
+            <option value="cost">Cost ($)</option>
+            <option value="requests">Requests</option>
+            <option value="tokens">Tokens</option>
+            <option value="errors">Errors</option>
+          </select>
+          <select id="chartPeriod" onchange="loadTimeseries()">
+            <option value="hourly">Hourly (24h)</option>
+            <option value="daily" selected>Daily (7 days)</option>
+            <option value="daily-30">Daily (30 days)</option>
+          </select>
+          <select id="chartApp" onchange="loadTimeseries()">
+            <option value="">All Apps</option>
+          </select>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="usageChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Two Column: Apps & Providers -->
+    <div class="two-column">
+      <!-- Per-App Breakdown -->
+      <div class="table-section">
+        <div class="table-header">
+          <h2>Usage by App</h2>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>App ID</th>
+                <th>Requests</th>
+                <th>Cost</th>
+                <th>Errors</th>
+                <th>Last Used</th>
+              </tr>
+            </thead>
+            <tbody id="appsTable">
+              <tr><td colspan="5" class="empty-state">No data yet</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div class="input-group">
-        <textarea
-          id="question"
-          placeholder="Ask a question about your API usage... (e.g., 'How much did my apps spend on Claude today?')"
-        ></textarea>
-        <button class="btn" onclick="askQuestion()" id="askBtn">Ask</button>
-      </div>
-
-      <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <p>Analyzing your question...</p>
-      </div>
-
-      <div class="result" id="result">
-        <!-- Results will be inserted here -->
+      <!-- Per-Provider Breakdown -->
+      <div class="table-section">
+        <div class="table-header">
+          <h2>Usage by Provider</h2>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th>Requests</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody id="providersTable">
+              <tr><td colspan="3" class="empty-state">No data yet</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <!-- Documentation Section -->
-    <div class="docs-section">
-      <div class="docs-header" onclick="toggleDocs()">
-        <h2>How to Adopt Studio API in Your Apps</h2>
-        <span class="toggle-icon" id="docsToggle">▼</span>
+    <!-- Performance Metrics -->
+    <div class="table-section">
+      <div class="table-header">
+        <h2>Performance (Last 24 Hours)</h2>
       </div>
-      <div class="docs-content" id="docsContent">
-        <div class="docs-inner">
-          <p>
-            Studio API is a centralized gateway that simplifies LLM integration across all your apps.
-            Instead of managing multiple API keys and providers in each app, authenticate once and
-            access OpenAI, Anthropic, Grok, Replicate, and ElevenLabs through a single endpoint.
+      <div class="metrics-grid" id="metricsGrid">
+        <div class="metric-item">
+          <div class="label">Avg Latency</div>
+          <div class="value" id="avgLatency">--</div>
+        </div>
+        <div class="metric-item">
+          <div class="label">P95 Latency</div>
+          <div class="value" id="p95Latency">--</div>
+        </div>
+        <div class="metric-item">
+          <div class="label">Success Rate</div>
+          <div class="value" id="successRate">--</div>
+        </div>
+        <div class="metric-item">
+          <div class="label">Error Rate</div>
+          <div class="value" id="errorRate">--</div>
+        </div>
+        <div class="metric-item">
+          <div class="label">Total Requests</div>
+          <div class="value" id="totalRequests24h">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="table-section">
+      <div class="table-header">
+        <h2>Recent Activity</h2>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>App</th>
+              <th>Endpoint</th>
+              <th>Provider</th>
+              <th>Model</th>
+              <th>Cost</th>
+              <th>Duration</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="activityTable">
+            <tr><td colspan="8" class="empty-state">No activity yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AI Chat (Collapsible) -->
+    <div class="collapsible">
+      <div class="collapsible-header" onclick="toggleChat()">
+        <h2>AI Analytics Chat</h2>
+        <span class="collapsible-toggle" id="chatToggle">&#9660;</span>
+      </div>
+      <div class="collapsible-content" id="chatContent">
+        <div class="collapsible-inner">
+          <p style="color: var(--text-secondary); margin-bottom: 16px;">
+            Ask questions about your usage data in natural language.
           </p>
-
-          <h3>Quick Start</h3>
-
-          <h4>1. Authentication</h4>
-          <p>Studio API supports two authentication methods:</p>
-
-          <div class="code-block"><code><span class="code-comment">// Method 1: JWT Token (Recommended for production)</span>
-let request = URLRequest(url: url)
-request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
-
-<span class="code-comment">// Method 2: App Key (Simple, for testing)</span>
-let request = URLRequest(url: url)
-request.setValue(appKey, forHTTPHeaderField: "x-app-key")</code></div>
-
-          <h4>2. Add App Tracking (Important!)</h4>
-          <p>Add the <span class="highlight">x-app-id</span> header to track usage per app:</p>
-
-          <div class="code-block"><code><span class="code-comment">// Add this to ALL your API requests</span>
-request.setValue("arno-ios", forHTTPHeaderField: "x-app-id")
-<span class="code-comment">// or</span>
-request.setValue("studio-mobile", forHTTPHeaderField: "x-app-id")</code></div>
-
-          <p>This enables per-app analytics in this dashboard!</p>
-
-          <h3>Available Endpoints</h3>
-
-          <h4>Chat Completions</h4>
-          <p>Works with OpenAI, Anthropic, and Grok models:</p>
-
-          <div class="code-block"><code>POST https://your-api.railway.app/v1/chat/completions
-
-{
-  "model": "gpt-5",
-  "messages": [
-    { "role": "user", "content": "Hello!" }
-  ]
-}</code></div>
-
-          <h4>Image Generation</h4>
-          <p>Access DALL-E and Flux models:</p>
-
-          <div class="code-block"><code>POST https://your-api.railway.app/v1/images/generations
-
-{
-  "model": "dall-e-3",
-  "prompt": "A futuristic city",
-  "size": "1024x1024"
-}</code></div>
-
-          <h4>Music Generation</h4>
-          <p>Generate music with ElevenLabs:</p>
-
-          <div class="code-block"><code>POST https://your-api.railway.app/v1/music/create
-
-{
-  "text": "Epic orchestral music",
-  "duration": 30
-}</code></div>
-
-          <h3>Complete Swift Example</h3>
-
-          <div class="code-block"><code><span class="code-comment">// NetworkManager.swift</span>
-import Foundation
-
-class StudioAPIClient {
-    let baseURL = "https://your-api.railway.app"
-    let appKey = "your-app-key"
-    let appId = "arno-ios" <span class="code-comment">// Your app identifier</span>
-
-    func chatCompletion(messages: [[String: String]]) async throws -> Data {
-        let url = URL(string: "\(baseURL)/v1/chat/completions")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(appKey, forHTTPHeaderField: "x-app-key")
-        request.setValue(appId, forHTTPHeaderField: "x-app-id") <span class="code-comment">// Track usage!</span>
-
-        let body: [String: Any] = [
-            "model": "gpt-5",
-            "messages": messages
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return data
-    }
-}</code></div>
-
-          <h3>Why Use Studio API?</h3>
-
-          <div class="benefit-card">
-            <h4>Centralized Management</h4>
-            <p>
-              Update API keys once on the server instead of pushing app updates.
-              Add new providers without changing client code.
-            </p>
+          <div class="chat-examples">
+            <button class="example-btn" onclick="setQuestion('How much did each app spend this week?')">Spending by app</button>
+            <button class="example-btn" onclick="setQuestion('Show me the most expensive models')">Top models by cost</button>
+            <button class="example-btn" onclick="setQuestion('What are the failed requests today?')">Failed requests</button>
+            <button class="example-btn" onclick="setQuestion('Average response time by endpoint')">Latency analysis</button>
           </div>
-
-          <div class="benefit-card">
-            <h4>Cost Tracking & Analytics</h4>
-            <p>
-              Track exactly how much each app spends on each provider.
-              Query usage with natural language in this dashboard.
-            </p>
+          <div class="chat-input-group">
+            <textarea id="chatQuestion" placeholder="Ask a question about your API usage..."></textarea>
+            <button class="btn" onclick="askQuestion()" id="askBtn">Ask</button>
           </div>
-
-          <div class="benefit-card">
-            <h4>Unified Interface</h4>
-            <p>
-              One API for OpenAI, Anthropic, Grok, Replicate, and ElevenLabs.
-              Switch providers without changing client code.
-            </p>
-          </div>
-
-          <div class="benefit-card">
-            <h4>Security</h4>
-            <p>
-              API keys never stored in mobile apps.
-              Revoke access instantly without app updates.
-            </p>
-          </div>
-
-          <h3>Migration Checklist</h3>
-
-          <ul>
-            <li>Replace direct OpenAI/Anthropic SDK calls with Studio API endpoints</li>
-            <li>Add authentication (x-app-key or JWT token)</li>
-            <li>Add x-app-id header to all requests for tracking</li>
-            <li>Update base URL to your Railway deployment</li>
-            <li>Test with a few requests</li>
-            <li>Monitor usage in this dashboard</li>
-            <li>Remove provider SDKs from your app (optional)</li>
-          </ul>
-
-          <h3>Need Help?</h3>
-          <p>
-            Questions about integration? Check the <a href="https://your-api.railway.app/v1/models"
-            target="_blank" style="color: var(--accent);">model catalog</a> for all available models,
-            or query this analytics dashboard to see example API usage patterns.
-          </p>
+          <div class="chat-result" id="chatResult"></div>
         </div>
       </div>
     </div>
   </div>
 
   <footer>
-    Built with Lucid Studio API • Powered by AI
+    Built with Lucid Studio API
   </footer>
 
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+
   <script>
-    // Load saved configuration from localStorage
+    let usageChart = null;
+    let timeseriesData = [];
+
+    // Load saved config
     window.addEventListener('DOMContentLoaded', () => {
       const savedApiUrl = localStorage.getItem('lucid_api_url');
       const savedAppKey = localStorage.getItem('lucid_app_key');
 
       if (savedApiUrl) document.getElementById('apiUrl').value = savedApiUrl;
       if (savedAppKey) document.getElementById('appKey').value = savedAppKey;
+
+      // Auto-load if config exists
+      if (savedApiUrl && savedAppKey) {
+        loadDashboard();
+      }
+
+      // Initialize chart
+      initChart();
     });
 
-    // Save configuration to localStorage when changed
+    // Save config on change
     document.getElementById('apiUrl').addEventListener('change', (e) => {
       localStorage.setItem('lucid_api_url', e.target.value);
     });
@@ -957,43 +804,315 @@ class StudioAPIClient {
       localStorage.setItem('lucid_app_key', e.target.value);
     });
 
-    function toggleIntegration() {
-      const content = document.getElementById('integrationContent');
-      const toggle = document.getElementById('integrationToggle');
+    function getConfig() {
+      return {
+        apiUrl: document.getElementById('apiUrl').value.trim(),
+        appKey: document.getElementById('appKey').value.trim(),
+      };
+    }
 
+    function showLoading(show) {
+      document.getElementById('loadingOverlay').classList.toggle('active', show);
+    }
+
+    async function loadDashboard() {
+      const { apiUrl, appKey } = getConfig();
+      if (!apiUrl || !appKey) {
+        alert('Please enter API URL and APP_KEY');
+        return;
+      }
+
+      showLoading(true);
+
+      try {
+        // Load all data in parallel
+        const [dashboardRes, healthRes] = await Promise.all([
+          fetch(`${apiUrl}/v1/analytics/dashboard`, {
+            headers: { 'x-app-key': appKey }
+          }),
+          fetch(`${apiUrl}/v1/analytics/health`, {
+            headers: { 'x-app-key': appKey }
+          })
+        ]);
+
+        if (!dashboardRes.ok) throw new Error('Failed to load dashboard data');
+        if (!healthRes.ok) throw new Error('Failed to load health data');
+
+        const dashboard = await dashboardRes.json();
+        const health = await healthRes.json();
+
+        updateSummary(dashboard.summary);
+        updateAppsTable(dashboard.apps);
+        updateProvidersTable(dashboard.providers);
+        updateActivityTable(dashboard.recentActivity);
+        updateHealth(health);
+        populateAppFilter(dashboard.apps);
+
+        // Load timeseries
+        await loadTimeseries();
+
+      } catch (error) {
+        alert('Error loading dashboard: ' + error.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function refreshData() {
+      await loadDashboard();
+    }
+
+    function updateSummary(summary) {
+      document.getElementById('todayCost').textContent = '$' + summary.today.cost;
+      document.getElementById('todayRequests').textContent = summary.today.requests + ' requests';
+
+      document.getElementById('weekCost').textContent = '$' + summary.week.cost;
+      document.getElementById('weekRequests').textContent = summary.week.requests + ' requests';
+
+      document.getElementById('monthCost').textContent = '$' + summary.month.cost;
+      document.getElementById('monthRequests').textContent = summary.month.requests + ' requests';
+
+      document.getElementById('allTimeCost').textContent = '$' + summary.allTime.cost;
+      document.getElementById('allTimeRequests').textContent = summary.allTime.requests + ' requests';
+    }
+
+    function updateAppsTable(apps) {
+      const tbody = document.getElementById('appsTable');
+      if (!apps || apps.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No apps yet</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = apps.map(app => `
+        <tr>
+          <td><strong>${escapeHtml(app.appId)}</strong></td>
+          <td>${app.requests.toLocaleString()}</td>
+          <td style="color: var(--success);">$${app.cost}</td>
+          <td>${app.errors}</td>
+          <td style="color: var(--text-secondary);">${formatTime(app.lastUsed)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function updateProvidersTable(providers) {
+      const tbody = document.getElementById('providersTable');
+      if (!providers || providers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No providers yet</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = providers.map(p => `
+        <tr>
+          <td><strong>${escapeHtml(p.provider)}</strong></td>
+          <td>${p.requests.toLocaleString()}</td>
+          <td style="color: var(--success);">$${p.cost}</td>
+        </tr>
+      `).join('');
+    }
+
+    function updateActivityTable(activity) {
+      const tbody = document.getElementById('activityTable');
+      if (!activity || activity.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No recent activity</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = activity.map(a => `
+        <tr>
+          <td style="color: var(--text-secondary);">${formatTime(a.timestamp)}</td>
+          <td>${escapeHtml(a.appId)}</td>
+          <td>${escapeHtml(a.endpoint || '-')}</td>
+          <td>${escapeHtml(a.provider || '-')}</td>
+          <td style="font-size: 12px;">${escapeHtml(a.model || '-')}</td>
+          <td style="color: var(--success);">$${a.cost}</td>
+          <td>${a.duration ? a.duration + 'ms' : '-'}</td>
+          <td>
+            <span class="status-badge ${a.status < 400 ? 'success' : 'error'}">
+              ${a.status}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function updateHealth(health) {
+      const banner = document.getElementById('healthBanner');
+      banner.style.display = 'flex';
+      banner.className = 'health-banner ' + health.status;
+
+      const statusText = {
+        healthy: 'All systems operational',
+        degraded: 'System experiencing issues',
+        unhealthy: 'System degraded'
+      };
+
+      document.getElementById('healthStatus').textContent = statusText[health.status] || health.status;
+      document.getElementById('healthDetails').textContent =
+        `${health.lastHour.requests} requests/hr | ${health.lastHour.successRate}% success`;
+
+      // Update metrics
+      document.getElementById('avgLatency').textContent = health.last24Hours.avgLatency + 'ms';
+      document.getElementById('p95Latency').textContent = health.last24Hours.p95Latency + 'ms';
+      document.getElementById('successRate').textContent = health.last24Hours.successRate + '%';
+      document.getElementById('errorRate').textContent = health.last24Hours.errorRate + '%';
+      document.getElementById('totalRequests24h').textContent = health.last24Hours.requests.toLocaleString();
+    }
+
+    function populateAppFilter(apps) {
+      const select = document.getElementById('chartApp');
+      select.innerHTML = '<option value="">All Apps</option>';
+      apps.forEach(app => {
+        select.innerHTML += `<option value="${escapeHtml(app.appId)}">${escapeHtml(app.appId)}</option>`;
+      });
+    }
+
+    function initChart() {
+      const ctx = document.getElementById('usageChart').getContext('2d');
+      usageChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Cost ($)',
+            data: [],
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            fill: true,
+            tension: 0.4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false,
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: '#2a2a2a',
+              },
+              ticks: {
+                color: '#a0a0a0',
+              }
+            },
+            y: {
+              grid: {
+                color: '#2a2a2a',
+              },
+              ticks: {
+                color: '#a0a0a0',
+              },
+              beginAtZero: true,
+            }
+          }
+        }
+      });
+    }
+
+    async function loadTimeseries() {
+      const { apiUrl, appKey } = getConfig();
+      if (!apiUrl || !appKey) return;
+
+      const periodSelect = document.getElementById('chartPeriod').value;
+      const appId = document.getElementById('chartApp').value;
+
+      let period = 'daily';
+      let days = 7;
+
+      if (periodSelect === 'hourly') {
+        period = 'hourly';
+        days = 1;
+      } else if (periodSelect === 'daily-30') {
+        period = 'daily';
+        days = 30;
+      }
+
+      try {
+        let url = `${apiUrl}/v1/analytics/timeseries?period=${period}&days=${days}`;
+        if (appId) url += `&appId=${encodeURIComponent(appId)}`;
+
+        const response = await fetch(url, {
+          headers: { 'x-app-key': appKey }
+        });
+
+        if (!response.ok) throw new Error('Failed to load timeseries');
+
+        const data = await response.json();
+        timeseriesData = data.data;
+        updateChart();
+
+      } catch (error) {
+        console.error('Timeseries error:', error);
+      }
+    }
+
+    function updateChart() {
+      if (!usageChart || !timeseriesData) return;
+
+      const metric = document.getElementById('chartMetric').value;
+
+      const labels = timeseriesData.map(d => {
+        if (d.time.includes('T')) {
+          return d.time.split('T')[1] || d.time;
+        }
+        return d.time;
+      });
+
+      const data = timeseriesData.map(d => d[metric] || 0);
+
+      const colors = {
+        cost: '#10b981',
+        requests: '#6366f1',
+        tokens: '#8b5cf6',
+        errors: '#ef4444',
+      };
+
+      const labelText = {
+        cost: 'Cost ($)',
+        requests: 'Requests',
+        tokens: 'Tokens',
+        errors: 'Errors',
+      };
+
+      usageChart.data.labels = labels;
+      usageChart.data.datasets[0].data = data;
+      usageChart.data.datasets[0].label = labelText[metric];
+      usageChart.data.datasets[0].borderColor = colors[metric];
+      usageChart.data.datasets[0].backgroundColor = colors[metric] + '20';
+      usageChart.update();
+    }
+
+    // Chat functionality
+    function toggleChat() {
+      const content = document.getElementById('chatContent');
+      const toggle = document.getElementById('chatToggle');
       content.classList.toggle('open');
       toggle.classList.toggle('open');
     }
 
     function setQuestion(text) {
-      document.getElementById('question').value = text;
-      document.getElementById('question').focus();
+      document.getElementById('chatQuestion').value = text;
     }
 
     async function askQuestion() {
-      const question = document.getElementById('question').value.trim();
-      const apiUrl = document.getElementById('apiUrl').value.trim();
-      const appKey = document.getElementById('appKey').value.trim();
+      const { apiUrl, appKey } = getConfig();
+      const question = document.getElementById('chatQuestion').value.trim();
 
-      if (!question) {
-        alert('Please enter a question');
+      if (!question) return;
+      if (!apiUrl || !appKey) {
+        alert('Please configure API URL and APP_KEY first');
         return;
       }
 
-      if (!apiUrl) {
-        alert('Please enter your API URL in the configuration section');
-        return;
-      }
+      const resultDiv = document.getElementById('chatResult');
+      const askBtn = document.getElementById('askBtn');
 
-      if (!appKey) {
-        alert('Please enter your APP_KEY in the configuration section');
-        return;
-      }
-
-      // Show loading state
-      document.getElementById('loading').classList.add('active');
-      document.getElementById('result').classList.remove('active');
-      document.getElementById('askBtn').disabled = true;
+      askBtn.disabled = true;
+      resultDiv.innerHTML = '<p style="color: var(--text-secondary);">Analyzing...</p>';
+      resultDiv.classList.add('active');
 
       try {
         const response = await fetch(`${apiUrl}/v1/analytics/chat`, {
@@ -1005,182 +1124,83 @@ class StudioAPIClient {
           body: JSON.stringify({ question })
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-          const errorData = await response.json();
-          // Pass the full error object if it has structured data
-          if (errorData.examples || errorData.suggestion) {
-            displayError(errorData);
-          } else {
-            displayError(errorData.error || `HTTP ${response.status}`);
+          let html = `<div class="error-message"><strong>${escapeHtml(data.error || 'Error')}</strong>`;
+          if (data.reason) html += `<p>${escapeHtml(data.reason)}</p>`;
+          if (data.suggestion) html += `<p>${escapeHtml(data.suggestion)}</p>`;
+          if (data.examples) {
+            html += '<p style="margin-top: 8px;"><strong>Try:</strong></p>';
+            html += '<div class="chat-examples" style="margin-top: 8px;">';
+            data.examples.forEach(ex => {
+              html += `<button class="example-btn" onclick="setQuestion('${escapeHtml(ex)}')">${escapeHtml(ex)}</button>`;
+            });
+            html += '</div>';
           }
+          html += '</div>';
+          resultDiv.innerHTML = html;
           return;
         }
 
-        const data = await response.json();
-        displayResult(data);
-
-      } catch (error) {
-        displayError(error.message);
-      } finally {
-        document.getElementById('loading').classList.remove('active');
-        document.getElementById('askBtn').disabled = false;
-      }
-    }
-
-    function displayResult(data) {
-      const resultDiv = document.getElementById('result');
-
-      if (data.error) {
-        displayError(data.error);
-        return;
-      }
-
-      let html = '';
-
-      // SQL Query
-      html += `
-        <div class="sql-query">
-          <h3>Generated SQL Query</h3>
-          <div class="sql-code">${escapeHtml(data.sql)}</div>
-        </div>
-      `;
-
-      // Explanation
-      if (data.explanation) {
-        html += `
-          <div class="explanation">
-            <h3>What this query does</h3>
-            <p>${escapeHtml(data.explanation)}</p>
-          </div>
-        `;
-      }
-
-      // Results Table
-      if (data.results && data.results.length > 0) {
-        html += `
-          <div class="results-table">
-            <div class="results-header">
-              <h3>Results (${data.resultCount} rows)</h3>
-              <button class="export-btn" onclick="exportToCSV()">Export CSV</button>
-            </div>
-            ${generateTable(data.results)}
-          </div>
-        `;
-
-        // Store results for export
-        window.currentResults = data.results;
-      } else {
-        html += `
-          <div class="empty-state">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-            </svg>
-            <p>No results found</p>
-          </div>
-        `;
-      }
-
-      resultDiv.innerHTML = html;
-      resultDiv.classList.add('active');
-    }
-
-    function displayError(errorData) {
-      const resultDiv = document.getElementById('result');
-
-      // Handle both string errors and structured error objects
-      if (typeof errorData === 'string') {
-        resultDiv.innerHTML = `
-          <div class="error">
-            <h3>Error</h3>
-            <p>${escapeHtml(errorData)}</p>
-          </div>
-        `;
-      } else {
-        let html = `
-          <div class="error">
-            <h3>${escapeHtml(errorData.error || 'Error')}</h3>
-            ${errorData.reason ? `<p>${escapeHtml(errorData.reason)}</p>` : ''}
-            ${errorData.suggestion ? `<p style="margin-top: 12px;"><strong>Suggestion:</strong> ${escapeHtml(errorData.suggestion)}</p>` : ''}
-        `;
-
-        if (errorData.examples && errorData.examples.length > 0) {
-          html += `
-            <div style="margin-top: 16px;">
-              <p><strong>Try asking:</strong></p>
-              <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
-          `;
-          errorData.examples.forEach(example => {
-            html += `<button class="example-btn" onclick="setQuestion('${escapeHtml(example)}')" style="background: rgba(99, 102, 241, 0.2); border-color: var(--accent);">${escapeHtml(example)}</button>`;
-          });
-          html += `
-              </div>
-            </div>
-          `;
+        let html = '';
+        if (data.sql) {
+          html += `<div class="sql-display">${escapeHtml(data.sql)}</div>`;
+        }
+        if (data.explanation) {
+          html += `<p style="color: var(--text-secondary); margin-bottom: 12px;">${escapeHtml(data.explanation)}</p>`;
+        }
+        if (data.results && data.results.length > 0) {
+          html += generateResultTable(data.results);
+        } else if (data.error) {
+          html += `<div class="error-message">${escapeHtml(data.error)}</div>`;
+        } else {
+          html += '<p style="color: var(--text-secondary);">No results found.</p>';
         }
 
-        html += `</div>`;
         resultDiv.innerHTML = html;
+
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="error-message">${escapeHtml(error.message)}</div>`;
+      } finally {
+        askBtn.disabled = false;
       }
-      resultDiv.classList.add('active');
     }
 
-    function generateTable(data) {
+    function generateResultTable(data) {
       if (!data || data.length === 0) return '';
 
       const headers = Object.keys(data[0]);
-
-      let html = '<table><thead><tr>';
-      headers.forEach(header => {
-        html += `<th>${escapeHtml(header)}</th>`;
+      let html = '<div class="table-wrapper" style="margin-top: 12px;"><table>';
+      html += '<thead><tr>';
+      headers.forEach(h => {
+        html += `<th>${escapeHtml(h)}</th>`;
       });
       html += '</tr></thead><tbody>';
 
       data.forEach(row => {
         html += '<tr>';
-        headers.forEach(header => {
-          const value = row[header];
-          html += `<td>${value !== null && value !== undefined ? escapeHtml(String(value)) : ''}</td>`;
+        headers.forEach(h => {
+          const val = row[h];
+          html += `<td>${val !== null && val !== undefined ? escapeHtml(String(val)) : ''}</td>`;
         });
         html += '</tr>';
       });
 
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
       return html;
     }
 
-    function exportToCSV() {
-      if (!window.currentResults || window.currentResults.length === 0) {
-        alert('No results to export');
-        return;
-      }
+    function formatTime(timestamp) {
+      if (!timestamp) return '-';
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diff = now - date;
 
-      const data = window.currentResults;
-      const headers = Object.keys(data[0]);
-
-      let csv = headers.join(',') + '\n';
-
-      data.forEach(row => {
-        const values = headers.map(header => {
-          const value = row[header];
-          const stringValue = value !== null && value !== undefined ? String(value) : '';
-          // Escape quotes and wrap in quotes if contains comma
-          return stringValue.includes(',') || stringValue.includes('"')
-            ? `"${stringValue.replace(/"/g, '""')}"`
-            : stringValue;
-        });
-        csv += values.join(',') + '\n';
-      });
-
-      // Download
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `lucid-analytics-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      if (diff < 60000) return 'Just now';
+      if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+      return date.toLocaleDateString();
     }
 
     function escapeHtml(text) {
@@ -1189,27 +1209,13 @@ class StudioAPIClient {
       return div.innerHTML;
     }
 
-    // Allow Enter to submit (with Shift+Enter for new line)
-    document.getElementById('question').addEventListener('keydown', (e) => {
+    // Enter to submit chat
+    document.getElementById('chatQuestion').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         askQuestion();
       }
     });
-
-    // Toggle documentation section
-    function toggleDocs() {
-      const content = document.getElementById('docsContent');
-      const toggle = document.getElementById('docsToggle');
-
-      if (content.classList.contains('open')) {
-        content.classList.remove('open');
-        toggle.classList.remove('open');
-      } else {
-        content.classList.add('open');
-        toggle.classList.add('open');
-      }
-    }
   </script>
 </body>
 </html>
