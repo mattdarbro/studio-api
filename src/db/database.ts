@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import crypto from 'crypto';
 import { logger } from '../logger';
 import { UsageLog } from '../services/usage';
 
@@ -71,6 +72,27 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_hosted_user_id ON hosted_images(user_id);
     CREATE INDEX IF NOT EXISTS idx_hosted_created_at ON hosted_images(created_at);
     CREATE INDEX IF NOT EXISTS idx_hosted_prediction_id ON hosted_images(replicate_prediction_id);
+  `);
+
+  // Create users table for Apple Sign-In users
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      apple_user_id TEXT UNIQUE,
+      email TEXT,
+      app_id TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      last_login_at TEXT,
+      login_count INTEGER DEFAULT 1,
+      is_active INTEGER DEFAULT 1
+    )
+  `);
+
+  // Create indexes for users table
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_users_apple_id ON users(apple_user_id);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_users_app_id ON users(app_id);
   `);
 
   logger.info('Database schema initialized');
@@ -420,6 +442,134 @@ export function getHostedImageStats(): {
 export function closeDatabase(): void {
   db.close();
   logger.info('Database connection closed');
+}
+
+/**
+ * User Management Database Operations
+ */
+
+export interface User {
+  id: string;
+  appleUserId: string;
+  email?: string;
+  appId?: string;
+  createdAt: Date;
+  lastLoginAt?: Date;
+  loginCount: number;
+  isActive: boolean;
+}
+
+/**
+ * Find or create a user by their Apple user ID
+ */
+export function findOrCreateAppleUser(
+  appleUserId: string,
+  email?: string,
+  appId?: string
+): User {
+  // Try to find existing user
+  const existingStmt = db.prepare('SELECT * FROM users WHERE apple_user_id = ?');
+  const existingRow = existingStmt.get(appleUserId) as any;
+
+  if (existingRow) {
+    // Update last login and increment count
+    const updateStmt = db.prepare(`
+      UPDATE users
+      SET last_login_at = ?, login_count = login_count + 1
+      WHERE apple_user_id = ?
+    `);
+    updateStmt.run(new Date().toISOString(), appleUserId);
+
+    // Update email if provided and different
+    if (email && email !== existingRow.email) {
+      const emailStmt = db.prepare('UPDATE users SET email = ? WHERE apple_user_id = ?');
+      emailStmt.run(email, appleUserId);
+    }
+
+    return {
+      id: existingRow.id,
+      appleUserId: existingRow.apple_user_id,
+      email: email || existingRow.email,
+      appId: existingRow.app_id,
+      createdAt: new Date(existingRow.created_at),
+      lastLoginAt: new Date(),
+      loginCount: existingRow.login_count + 1,
+      isActive: existingRow.is_active === 1,
+    };
+  }
+
+  // Create new user
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const insertStmt = db.prepare(`
+    INSERT INTO users (id, apple_user_id, email, app_id, created_at, last_login_at, login_count, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, 1, 1)
+  `);
+  insertStmt.run(id, appleUserId, email || null, appId || null, now, now);
+
+  logger.info(`Created new Apple user: ${id} (Apple ID: ${appleUserId.substring(0, 8)}...)`);
+
+  return {
+    id,
+    appleUserId,
+    email,
+    appId,
+    createdAt: new Date(now),
+    lastLoginAt: new Date(now),
+    loginCount: 1,
+    isActive: true,
+  };
+}
+
+/**
+ * Get a user by their internal ID
+ */
+export function getUserById(id: string): User | null {
+  const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+  const row = stmt.get(id) as any;
+
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    appleUserId: row.apple_user_id,
+    email: row.email,
+    appId: row.app_id,
+    createdAt: new Date(row.created_at),
+    lastLoginAt: row.last_login_at ? new Date(row.last_login_at) : undefined,
+    loginCount: row.login_count,
+    isActive: row.is_active === 1,
+  };
+}
+
+/**
+ * Deactivate a user (soft delete)
+ */
+export function deactivateUser(id: string): boolean {
+  const stmt = db.prepare('UPDATE users SET is_active = 0 WHERE id = ?');
+  const result = stmt.run(id);
+  return result.changes > 0;
+}
+
+/**
+ * Get user statistics
+ */
+export function getUserStats(): {
+  totalUsers: number;
+  activeUsers: number;
+  usersByApp: Record<string, number>;
+} {
+  const totalUsers = (db.prepare('SELECT COUNT(*) as count FROM users').get() as any).count;
+  const activeUsers = (db.prepare('SELECT COUNT(*) as count FROM users WHERE is_active = 1').get() as any).count;
+
+  const appStats = db.prepare('SELECT app_id, COUNT(*) as count FROM users GROUP BY app_id').all() as any[];
+  const usersByApp: Record<string, number> = {};
+  for (const row of appStats) {
+    usersByApp[row.app_id || 'unknown'] = row.count;
+  }
+
+  return { totalUsers, activeUsers, usersByApp };
 }
 
 // Initialize database on module load

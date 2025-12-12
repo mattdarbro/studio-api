@@ -14,6 +14,7 @@ import imagesRouter from './routes/images';
 import musicRouter from './routes/music';
 import voiceRouter from './routes/voice';
 import validateRouter from './routes/validate';
+import authRouter from './routes/auth';
 import analyticsRouter from './routes/analytics';
 import { logger } from './logger';
 import { getImagePath, imageExists } from './services/imageStorage';
@@ -102,6 +103,10 @@ app.get('/ready', (req, res) => {
 // Validation endpoint (no auth required - this IS the auth step)
 app.use('/v1/validate', validateRouter);
 
+// Auth endpoint (no auth required - this IS the auth step)
+// Sign in with Apple, refresh, logout
+app.use('/v1/auth', authRouter);
+
 // Public hosted images endpoint (no auth required - images need to be publicly accessible)
 const publicImagesRouter = Router();
 publicImagesRouter.get('/hosted/:userId/:imageId', (req, res) => {
@@ -180,6 +185,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 const HOST = '0.0.0.0';
 const server = app.listen(PORT, HOST, () => {
   logger.info(`🚀 Lucid API server running on ${HOST}:${PORT}`);
+  logger.info(`🍎 Apple Auth: http://localhost:${PORT}/v1/auth/apple`);
   logger.info(`🔐 Validate: http://localhost:${PORT}/v1/validate`);
   logger.info(`📚 Model catalog: http://localhost:${PORT}/v1/models`);
   logger.info(`💬 Chat: http://localhost:${PORT}/v1/chat`);
