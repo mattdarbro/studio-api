@@ -81,6 +81,11 @@ router.post('/apple', async (req: Request, res: Response) => {
 
     logger.info(`Apple auth: user ${user.id}, app: ${appId || 'unknown'}, new: ${isNewUser}`);
 
+    // Get API keys for this app (app-specific keys fall back to main keys)
+    const anthropicKey = process.env.ANTHROPIC_API_KEY_LOCAL_POET || process.env.ANTHROPIC_API_KEY;
+    const replicateKey = process.env.REPLICATE_API_KEY_LOCAL_POET || process.env.REPLICATE_API_KEY;
+    const elevenLabsKey = process.env.ELEVENLABS_API_KEY_LOCAL_POET || process.env.ELEVENLABS_API_KEY;
+
     res.json({
       sessionToken,
       expiresIn: 900, // 15 minutes in seconds
@@ -88,6 +93,11 @@ router.post('/apple', async (req: Request, res: Response) => {
         id: user.id,
         email: user.email,
         isNewUser,
+      },
+      apiKeys: {
+        anthropic: anthropicKey,
+        replicate: replicateKey,
+        elevenLabs: elevenLabsKey,
       },
     });
   } catch (error: any) {
