@@ -1,0 +1,44 @@
+{
+  "lucid": {
+    "display_name": "Lucid",
+    "capabilities": {
+      "allowed": [
+        "claude_api",
+        "claude_code",
+        "image_gen",
+        "file_read",
+        "file_write",
+        "web_search",
+        "web_fetch"
+      ],
+      "denied": [
+        "payment",
+        "user_data",
+        "app_store_connect",
+        "admin",
+        "profile_edit"
+      ]
+    },
+    "limits": {
+      "daily_spend_cap_usd": 2.00,
+      "requests_per_hour": 50,
+      "requests_per_day": 200,
+      "max_tokens_per_request": 8000,
+      "max_concurrent_sessions": 2
+    }
+  },
+  "matt": {
+    "display_name": "Matt",
+    "capabilities": {
+      "allowed": ["*"],
+      "denied": []
+    },
+    "limits": {
+      "daily_spend_cap_usd": 10.00,
+      "requests_per_hour": 200,
+      "requests_per_day": 1000,
+      "max_tokens_per_request": 32000,
+      "max_concurrent_sessions": 5
+    }
+  }
+}

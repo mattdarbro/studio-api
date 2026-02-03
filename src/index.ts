@@ -16,6 +16,7 @@ import voiceRouter from './routes/voice';
 import validateRouter from './routes/validate';
 import authRouter from './routes/auth';
 import analyticsRouter from './routes/analytics';
+import towerRouter from './tower';
 import { logger } from './logger';
 import { getImagePath, imageExists } from './services/imageStorage';
 import { flushPending } from './services/usage';
@@ -141,6 +142,10 @@ publicImagesRouter.get('/hosted/:userId/:imageId', (req, res) => {
 });
 app.use('/v1/images', publicImagesRouter);
 
+// Falcon Tower routes (has its own auth via x-tower-key)
+// Mounted before main auth middleware since tower uses separate authentication
+app.use('/tower', towerRouter);
+
 // Apply authentication and rate limiting to all routes
 app.use(authMiddleware);
 app.use(rateLimitMiddleware);
@@ -195,6 +200,7 @@ const server = app.listen(PORT, HOST, () => {
   logger.info(`🎙️  Voice: http://localhost:${PORT}/v1/voice`);
   logger.info(`📊 Analytics: http://localhost:${PORT}/v1/analytics/usage`);
   logger.info(`🤖 AI Chat: http://localhost:${PORT}/v1/analytics/chat`);
+  logger.info(`🗼 Falcon Tower: http://localhost:${PORT}/tower/status`);
   logger.info(`❤️  Health: http://localhost:${PORT}/health`);
 });
 
