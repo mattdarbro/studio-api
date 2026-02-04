@@ -56,6 +56,38 @@
         "provider": "replicate",
         "model": "black-forest-labs/flux-pro"
       },
+      "image.z-image-turbo": {
+        "provider": "replicate",
+        "model": "prunaai/z-image-turbo"
+      },
+      "image.flux-1.1-pro": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-1.1-pro"
+      },
+      "image.ideogram-v3-turbo": {
+        "provider": "replicate",
+        "model": "ideogram-ai/ideogram-v3-turbo"
+      },
+      "image.recraft-v3": {
+        "provider": "replicate",
+        "model": "recraft-ai/recraft-v3"
+      },
+      "image.flux-kontext-pro": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-kontext-pro"
+      },
+      "image.flux-1.1-pro-ultra": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-1.1-pro-ultra"
+      },
+      "image.ideogram-v3-quality": {
+        "provider": "replicate",
+        "model": "ideogram-ai/ideogram-v3-quality"
+      },
+      "image.imagen-4": {
+        "provider": "replicate",
+        "model": "google/imagen-4"
+      },
       "voice.default": {
         "provider": "elevenlabs",
         "model": "eleven_turbo_v2_5"
@@ -138,6 +170,38 @@
       "image.flux-pro": {
         "provider": "replicate",
         "model": "black-forest-labs/flux-pro"
+      },
+      "image.z-image-turbo": {
+        "provider": "replicate",
+        "model": "prunaai/z-image-turbo"
+      },
+      "image.flux-1.1-pro": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-1.1-pro"
+      },
+      "image.ideogram-v3-turbo": {
+        "provider": "replicate",
+        "model": "ideogram-ai/ideogram-v3-turbo"
+      },
+      "image.recraft-v3": {
+        "provider": "replicate",
+        "model": "recraft-ai/recraft-v3"
+      },
+      "image.flux-kontext-pro": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-kontext-pro"
+      },
+      "image.flux-1.1-pro-ultra": {
+        "provider": "replicate",
+        "model": "black-forest-labs/flux-1.1-pro-ultra"
+      },
+      "image.ideogram-v3-quality": {
+        "provider": "replicate",
+        "model": "ideogram-ai/ideogram-v3-quality"
+      },
+      "image.imagen-4": {
+        "provider": "replicate",
+        "model": "google/imagen-4"
       },
       "voice.default": {
         "provider": "elevenlabs",
