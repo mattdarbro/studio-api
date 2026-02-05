@@ -10,7 +10,7 @@ const router = Router();
 
 interface ChatMessage {
   role: string;
-  content: string;
+  content: string | any[];  // Support both string and array content for vision
 }
 
 interface ChatRequestBody {

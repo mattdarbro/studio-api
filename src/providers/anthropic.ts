@@ -2,9 +2,21 @@ import { logger } from '../logger';
 import { keepAliveAgent } from '../httpClient';
 import { fetchWithTimeout, TIMEOUTS } from '../utils/fetchWithTimeout';
 
+interface ImageURLContent {
+  type: 'image_url';
+  image_url: { url: string };
+}
+
+interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+type ContentPart = TextContent | ImageURLContent;
+
 interface ChatMessage {
   role: string;
-  content: string;
+  content: string | ContentPart[];
 }
 
 interface AnthropicChatRequest {
@@ -21,16 +33,55 @@ export async function anthropicChat({ model, messages, key, max_tokens = 4096 }:
   // Anthropic doesn't use "system" role in messages array
   const systemMessages = messages.filter(m => m.role === 'system');
   const nonSystemMessages = messages.filter(m => m.role !== 'system');
-  const systemPrompt = systemMessages.map(m => m.content).join('\n');
+  const systemPrompt = systemMessages.map(m => typeof m.content === 'string' ? m.content : '').join('\n');
+
+  // Helper to convert OpenAI image_url format to Anthropic image format
+  const convertContentToAnthropic = (content: string | ContentPart[]): any[] => {
+    if (typeof content === 'string') {
+      return [{ type: 'text', text: content }];
+    }
+
+    // Content is an array of parts (multimodal)
+    return content.map(part => {
+      if (part.type === 'text') {
+        return { type: 'text', text: part.text };
+      } else if (part.type === 'image_url') {
+        // Convert OpenAI image_url format to Anthropic image format
+        const url = part.image_url.url;
+
+        // Check if it's a base64 data URL
+        if (url.startsWith('data:')) {
+          const matches = url.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            const mediaType = matches[1];
+            const base64Data = matches[2];
+            return {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mediaType,
+                data: base64Data
+              }
+            };
+          }
+        }
+
+        // For regular URLs, use URL source type
+        return {
+          type: 'image',
+          source: {
+            type: 'url',
+            url: url
+          }
+        };
+      }
+      return part;
+    });
+  };
 
   const anthropicMessages = nonSystemMessages.map(msg => ({
     role: msg.role === 'assistant' ? 'assistant' : 'user',
-    content: [
-      {
-        type: 'text',
-        text: msg.content
-      }
-    ]
+    content: convertContentToAnthropic(msg.content)
   }));
 
   const requestBody: any = {

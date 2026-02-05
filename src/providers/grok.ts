@@ -4,7 +4,7 @@ import { fetchWithTimeout, TIMEOUTS } from '../utils/fetchWithTimeout';
 
 interface ChatMessage {
   role: string;
-  content: string;
+  content: string | any[];  // Support both string and array content for vision
 }
 
 interface GrokChatRequest {
