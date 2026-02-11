@@ -119,9 +119,13 @@ export async function createMessage(data: {
   in_reply_to?: string;
 }): Promise<Message> {
   const sb = getSupabase();
+  // Filter out undefined values to let DB defaults apply
+  const cleaned = Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => v !== undefined)
+  );
   const { data: message, error } = await sb
     .from('dispatch_messages')
-    .insert({ id: generateMessageId(), ...data })
+    .insert({ id: generateMessageId(), ...cleaned })
     .select()
     .single();
   if (error) throw error;
