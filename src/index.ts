@@ -16,11 +16,13 @@ import voiceRouter from './routes/voice';
 import validateRouter from './routes/validate';
 import authRouter from './routes/auth';
 import analyticsRouter from './routes/analytics';
+import dispatchRouter from './routes/dispatch';
 import { logger } from './logger';
 import { getImagePath, imageExists } from './services/imageStorage';
 import { flushPending } from './services/usage';
 import { closeDatabase } from './db/database';
 import { freeTokenEncoding } from './config/pricing';
+import { shutdownApns } from './services/apns';
 
 // Load environment variables
 dotenv.config();
@@ -169,6 +171,7 @@ app.use('/v1/ephemeral', ephemeralRouter);
 app.use('/v1/images', imagesRouter);
 app.use('/v1/music', musicRouter);
 app.use('/v1/voice', voiceRouter);
+app.use('/v1/dispatch', dispatchRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -195,6 +198,7 @@ const server = app.listen(PORT, HOST, () => {
   logger.info(`🎙️  Voice: http://localhost:${PORT}/v1/voice`);
   logger.info(`📊 Analytics: http://localhost:${PORT}/v1/analytics/usage`);
   logger.info(`🤖 AI Chat: http://localhost:${PORT}/v1/analytics/chat`);
+  logger.info(`📨 Dispatch: http://localhost:${PORT}/v1/dispatch`);
   logger.info(`❤️  Health: http://localhost:${PORT}/health`);
 });
 
@@ -220,6 +224,7 @@ process.on('SIGTERM', () => {
     flushPending();
     closeDatabase();
     freeTokenEncoding();
+    shutdownApns();
     logger.info('Cleanup complete');
     process.exit(0);
   });
@@ -232,6 +237,7 @@ process.on('SIGINT', () => {
     flushPending();
     closeDatabase();
     freeTokenEncoding();
+    shutdownApns();
     logger.info('Cleanup complete');
     process.exit(0);
   });

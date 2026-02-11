@@ -16,6 +16,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@parse/node-apn": "^6.0.1",
+    "@supabase/supabase-js": "^2.49.1",
     "abort-controller": "^3.0.0",
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
@@ -33,6 +35,6 @@
     "@types/node": "^20.11.0",
     "@types/node-fetch": "^2.6.11",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.9.3"
   }
 }
