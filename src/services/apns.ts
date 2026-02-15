@@ -38,6 +38,7 @@ export async function sendPushNotification(opts: {
   body: string;
   senderId: string;
   messageId: string;
+  channelId?: string;
 }): Promise<void> {
   try {
     const tokens = await getAllDeviceTokens();
@@ -55,10 +56,11 @@ export async function sendPushNotification(opts: {
     note.badge = badge;
     note.sound = 'default';
     note.topic = bundleId;
-    note.threadId = opts.senderId;
+    note.threadId = opts.channelId ?? opts.senderId;
     note.payload = {
       sender_id: opts.senderId,
       message_id: opts.messageId,
+      ...(opts.channelId && { channel_id: opts.channelId }),
     };
     note.pushType = 'alert';
 
