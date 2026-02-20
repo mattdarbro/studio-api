@@ -540,6 +540,16 @@ export async function getLatestMessagePerSender(): Promise<
   return result;
 }
 
+export async function deleteMessagesForSender(senderId: string): Promise<number> {
+  const sb = getSupabase();
+  const { error, count } = await sb
+    .from('dispatch_messages')
+    .delete({ count: 'exact' })
+    .eq('sender_id', senderId);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 // ── Devices ────────────────────────────────────────────
 
 export async function registerDevice(

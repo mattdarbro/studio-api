@@ -13,6 +13,7 @@ import {
   updateMessage,
   getUnreadCount,
   getLatestMessagePerSender,
+  deleteMessagesForSender,
   registerDevice,
   unregisterDevice,
   createChannel,
@@ -269,6 +270,34 @@ router.patch('/messages/:id', (async (req: AuthenticatedRequest, res: Response):
     res.json(message);
   } catch (error: any) {
     logger.error('Update message error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+}) as any);
+
+// ── Conversations ─────────────────────────────────────
+
+// DELETE /v1/dispatch/conversations/:sender_id - Delete conversation (all messages for a sender)
+router.delete('/conversations/:sender_id', (async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { sender_id } = req.params;
+    const deleteSenderToo = req.query.delete_sender === 'true';
+
+    const sender = await getSender(sender_id);
+    if (!sender) {
+      res.status(404).json({ error: `Sender '${sender_id}' not found` });
+      return;
+    }
+
+    const deletedCount = await deleteMessagesForSender(sender_id);
+
+    if (deleteSenderToo) {
+      await deleteSender(sender_id);
+    }
+
+    logger.info(`Conversation deleted: ${sender_id} (${deletedCount} messages${deleteSenderToo ? ', sender removed' : ''})`);
+    res.json({ deleted_messages: deletedCount, sender_deleted: deleteSenderToo });
+  } catch (error: any) {
+    logger.error('Delete conversation error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }) as any);
