@@ -164,7 +164,7 @@ export const usageTrackerMiddleware: RequestHandler = (
       } else if (endpoint.startsWith('/v1/ephemeral')) {
         // Realtime API
         provider = 'openai';
-        model = 'gpt-4o-realtime-preview';
+        model = 'gpt-realtime-1.5';
         // Cost will be tracked during actual usage, not session creation
         estimatedCost = 0;
       }

@@ -396,7 +396,7 @@ EXPLANATION: [Brief explanation]`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Fast and cheap for SQL generation
+        model: 'o4-mini', // Fast and cheap for SQL generation
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: question }

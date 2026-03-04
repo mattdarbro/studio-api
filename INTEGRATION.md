@@ -152,11 +152,11 @@ Get available model catalog
     "stable": {
       "chat.default": {
         "provider": "openai",
-        "model": "gpt-4"
+        "model": "gpt-5.1"
       },
       "realtime.default": {
         "provider": "openai",
-        "model": "gpt-4o-realtime-preview-2024-10-01"
+        "model": "gpt-realtime-1.5"
       }
     }
   },

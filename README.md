@@ -254,17 +254,17 @@ Edit `model-catalog.json` to configure available models:
     "stable": {
       "chat.default": {
         "provider": "openai",
-        "model": "gpt-4"
+        "model": "gpt-5.1"
       },
       "realtime.default": {
         "provider": "openai",
-        "model": "gpt-4o-realtime-preview"
+        "model": "gpt-realtime-1.5"
       }
     },
     "beta": {
       "chat.default": {
         "provider": "openai",
-        "model": "gpt-4-turbo"
+        "model": "gpt-5.1"
       }
     }
   },

@@ -5,7 +5,7 @@
  * Token prices are per 1,000 tokens.
  * Update these periodically as provider pricing changes.
  *
- * Last updated: 2025-11-26
+ * Last updated: 2026-03-04
  */
 
 import { get_encoding } from 'tiktoken';
@@ -31,7 +31,7 @@ export const PRICING = {
     // GPT-5 pricing
     'gpt-5': { input: 0.0025, output: 0.010 } as TokenPricing,
 
-    // GPT-4o pricing
+    // GPT-4o pricing (deprecated)
     'gpt-4o': { input: 0.0025, output: 0.010 } as TokenPricing,
     'gpt-4o-mini': { input: 0.00015, output: 0.0006 } as TokenPricing,
 
@@ -39,7 +39,8 @@ export const PRICING = {
     'o4-mini': { input: 0.0011, output: 0.0044 } as TokenPricing,
 
     // Realtime API
-    'gpt-4o-realtime-preview': { input: 0.005, output: 0.020 } as TokenPricing,
+    'gpt-realtime-1.5': { input: 0.004, output: 0.016 } as TokenPricing,
+    'gpt-4o-realtime-preview': { input: 0.005, output: 0.020 } as TokenPricing, // deprecated
 
     // TTS models (per 1M characters)
     'tts-1': { input: 0.015, output: 0.0 } as TokenPricing,        // $15 per 1M chars
@@ -47,14 +48,18 @@ export const PRICING = {
   },
 
   anthropic: {
-    // Claude Opus 4.5 (Nov 2025)
-    'claude-opus-4-5-20251101': { input: 0.005, output: 0.025 } as TokenPricing,
+    // Claude Opus 4.6 (Feb 2026)
+    'claude-opus-4-6': { input: 0.005, output: 0.025 } as TokenPricing,
 
-    // Claude Sonnet 4.5
-    'claude-sonnet-4-5-20250929': { input: 0.003, output: 0.015 } as TokenPricing,
+    // Claude Sonnet 4.6 (Feb 2026)
+    'claude-sonnet-4-6-20260218': { input: 0.003, output: 0.015 } as TokenPricing,
 
     // Claude Haiku 4.5
     'claude-haiku-4-5-20251001': { input: 0.0008, output: 0.004 } as TokenPricing,
+
+    // Legacy Claude 4.5 models (deprecated)
+    'claude-opus-4-5-20251101': { input: 0.005, output: 0.025 } as TokenPricing,
+    'claude-sonnet-4-5-20250929': { input: 0.003, output: 0.015 } as TokenPricing,
   },
 
   grok: {

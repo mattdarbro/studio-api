@@ -22,15 +22,15 @@
       },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251101"
+        "model": "claude-opus-4-6"
       },
       "chat.claudeOpus": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251101"
+        "model": "claude-opus-4-6"
       },
       "chat.claudeSonnet": {
         "provider": "anthropic",
-        "model": "claude-sonnet-4-5-20250929"
+        "model": "claude-sonnet-4-6-20260218"
       },
       "chat.grok": {
         "provider": "grok",
@@ -42,7 +42,7 @@
       },
       "realtime.default": {
         "provider": "openai",
-        "model": "gpt-4o-realtime-preview"
+        "model": "gpt-realtime-1.5"
       },
       "image.default": {
         "provider": "replicate",
@@ -137,15 +137,15 @@
       },
       "chat.claude": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251101"
+        "model": "claude-opus-4-6"
       },
       "chat.claudeOpus": {
         "provider": "anthropic",
-        "model": "claude-opus-4-5-20251101"
+        "model": "claude-opus-4-6"
       },
       "chat.claudeSonnet": {
         "provider": "anthropic",
-        "model": "claude-sonnet-4-5-20250929"
+        "model": "claude-sonnet-4-6-20260218"
       },
       "chat.grok": {
         "provider": "grok",
@@ -157,7 +157,7 @@
       },
       "realtime.default": {
         "provider": "openai",
-        "model": "gpt-4o-realtime-preview"
+        "model": "gpt-realtime-1.5"
       },
       "image.default": {
         "provider": "replicate",
@@ -236,7 +236,7 @@
       "_comment": "Fast channel uses cheaper/faster models optimized for cost and latency",
       "chat.default": {
         "provider": "openai",
-        "model": "gpt-4o-mini"
+        "model": "o4-mini"
       },
       "chat.o4mini": {
         "provider": "openai",
@@ -291,10 +291,15 @@
   "deprecated": [
     "gpt-4",
     "gpt-4-turbo",
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4o-realtime-preview",
     "gpt-5-preview",
     "claude-3-5-sonnet-20241022",
     "claude-3-5-haiku-20241022",
     "claude-4.5-sonnet-preview",
+    "claude-opus-4-5-20251101",
+    "claude-sonnet-4-5-20250929",
     "grok-beta",
     "grok-3-beta",
     "grok-4-fast-reasoning",
