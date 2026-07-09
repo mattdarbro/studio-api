@@ -31,7 +31,7 @@ interface JWTPayload {
  * Timing-safe string comparison to prevent timing attacks
  * Returns true if strings are equal, false otherwise
  */
-function timingSafeCompare(a: string | undefined, b: string | undefined): boolean {
+export function timingSafeCompare(a: string | undefined, b: string | undefined): boolean {
   if (!a || !b) return false;
 
   // Convert to buffers for timing-safe comparison

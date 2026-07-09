@@ -3,6 +3,7 @@ import { logger } from '../logger';
 import { verifyAppleToken, isAppleAuthConfigured } from '../services/appleAuth';
 import { findOrCreateAppleUser, getUserById, getUserStats } from '../db/database';
 import { createSession, refreshSession, revokeSession, getSessionStats } from '../services/validation';
+import { timingSafeCompare } from '../auth';
 
 const router = Router();
 
@@ -81,11 +82,8 @@ router.post('/apple', async (req: Request, res: Response) => {
 
     logger.info(`Apple auth: user ${user.id}, app: ${appId || 'unknown'}, new: ${isNewUser}`);
 
-    // Get API keys for this app (app-specific keys fall back to main keys)
-    const anthropicKey = process.env.ANTHROPIC_API_KEY_LOCAL_POET || process.env.ANTHROPIC_API_KEY;
-    const replicateKey = process.env.REPLICATE_API_KEY_LOCAL_POET || process.env.REPLICATE_API_KEY;
-    const elevenLabsKey = process.env.ELEVENLABS_API_KEY_LOCAL_POET || process.env.ELEVENLABS_API_KEY;
-
+    // Provider API keys are never sent to clients. All AI calls must go
+    // through this gateway using the session token.
     res.json({
       sessionToken,
       expiresIn: 900, // 15 minutes in seconds
@@ -93,11 +91,6 @@ router.post('/apple', async (req: Request, res: Response) => {
         id: user.id,
         email: user.email,
         isNewUser,
-      },
-      apiKeys: {
-        anthropic: anthropicKey,
-        replicate: replicateKey,
-        elevenLabs: elevenLabsKey,
       },
     });
   } catch (error: any) {
@@ -179,9 +172,18 @@ router.post('/logout', (req: Request, res: Response) => {
  * GET /v1/auth/status
  *
  * Get auth system status (for admin/debugging)
+ *
+ * Headers:
+ *   - x-app-key: string (required) - admin app key
  */
 router.get('/status', (req: Request, res: Response) => {
   try {
+    const appKey = req.headers['x-app-key'] as string | undefined;
+    if (!process.env.APP_KEY || !timingSafeCompare(appKey, process.env.APP_KEY)) {
+      res.status(401).json({ error: 'Unauthorized: Valid x-app-key required' });
+      return;
+    }
+
     const sessionStats = getSessionStats();
     const userStats = getUserStats();
 
